@@ -138,7 +138,7 @@ int main()
 					* Generate spider
 					* Generate centipede
 					*/
-				generateMushrooms(50, mushrooms, mushroomGrid, mushroomTexture, damagedMushroomTexture);
+				generateMushrooms(70, mushrooms, mushroomGrid, mushroomTexture, damagedMushroomTexture);
 
 				for (int i = 0; i < 3; i++)
 				{
