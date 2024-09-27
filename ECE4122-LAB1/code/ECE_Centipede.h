@@ -20,7 +20,7 @@ public:
 
 private:
 	bool descending_ = true;
-	float speed_ = 100.0f;
+	float speed_ = 400.0f;
 	Grid gameGrid_;
 	
 	sf::Vector2f ignore_; // In case we have to clip through 

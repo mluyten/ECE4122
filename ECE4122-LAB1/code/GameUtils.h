@@ -33,6 +33,16 @@ struct Grid {
 		return r * size + yOffset;
 	}
 
+	size_t x2Col (float x)
+	{
+		return std::round((x - xOffset) / size);
+	}
+
+	size_t y2Row (float y)
+	{
+		return std::round((y - yOffset) / size);
+	}
+
 	sf::Vector2f gridSnap(float x, float y) 
 	{
 		return sf::Vector2f(std::round((x - xOffset) / size) + xOffset, std::round((y - yOffset) / size) + yOffset);

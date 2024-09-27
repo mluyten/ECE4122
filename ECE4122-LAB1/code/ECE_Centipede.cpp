@@ -27,7 +27,7 @@ Segment::Segment(float startX, float startY, Grid gameGrid, sf::Texture& texture
 	setPosition(startX, startY);
 	gameGrid_ = gameGrid;
 	this->dir = dir;
-	nextY_ = 4;
+	nextY_ = gameGrid.y2Row(startY);
 }
 
 Segment::Segment(sf::Vector2f start, Grid gameGrid, sf::Texture& texture, sf::Vector2f dir)
@@ -37,6 +37,7 @@ Segment::Segment(sf::Vector2f start, Grid gameGrid, sf::Texture& texture, sf::Ve
 	setPosition(start);
 	gameGrid_ = gameGrid;
 	this->dir = dir;
+	nextY_ = gameGrid.y2Row(start.y);
 }
 
 void Segment::collide()
@@ -297,11 +298,17 @@ float ECE_Centipede::checkCollision(sf::FloatRect ship, std::list<ECE_LaserBlast
 			{
 				hit = true;
 				blast = blasts.erase(blast);
-				score+=10;
+				if (segment->isHead)
+					score += 100;
+				else
+					score += 10;
+
+				// Place mushroom at location of bounce
 				sf::Vector2u mushroomSize = (*textures_)["Mushroom0.png"].getSize();
 				float scaleFactor = gameGrid_.size / float(mushroomSize.x > mushroomSize.y ? mushroomSize.x : mushroomSize.y);
 				mushrooms.emplace_back(gameGrid_.gridSnap(segment->getPosition()), (*textures_)["Mushroom0.png"], (*textures_)["Mushroom1.png"]);
 				mushrooms.back().setScale(scaleFactor, scaleFactor);
+
 				segment = segments_.erase(segment);
 			}
 			else {

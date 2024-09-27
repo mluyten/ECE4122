@@ -3,9 +3,10 @@
 
 #include "Mushroom.h"
 #include "Starship.h"
-#include "GameUtils.h"
+#include "Spider.h"
 #include "ECE_LaserBlast.h"
 #include "ECE_Centipede.h"
+#include "GameUtils.h"
 #include <sstream>
 #include <cstdlib>
 #include <iostream>
@@ -16,6 +17,79 @@
 #include <SFML/Graphics.hpp>
 
 using namespace sf;
+
+void cullBlasts(std::list<ECE_LaserBlast>& blasts)
+{
+	while(true) 
+	{
+		if (blasts.size() > 0 && blasts.front().getPosition().y < 0) 
+		{
+			blasts.pop_front();
+		}
+		else
+			break;
+	}
+}
+
+void generateMushrooms(size_t n, std::list<Mushroom>& mushrooms, Grid grid, sf::Texture& texture, sf::Texture& textureDamaged)
+{
+	std::random_device rd;  // a seed source for the random number engine
+    std::mt19937 gen(rd()); // mersenne_twister_engine seeded with rd()
+	std::uniform_int_distribution<> distrib(0, grid.rows*grid.cols-1);
+	std::vector<bool> mushMap (grid.rows*grid.cols, false);
+	float maxTextureDim = float(texture.getSize().x > texture.getSize().y ? texture.getSize().x : texture.getSize().y);
+	float scaleFactor = grid.size / maxTextureDim;
+	for (size_t i = 0; i < n; i++) 
+	{
+		size_t pos = distrib(gen);
+		while (mushMap[pos]) 
+		{
+			pos = distrib(gen);
+		}
+		mushMap[pos] = 1;
+		float posY = (floor(pos / grid.cols)) * grid.size + grid.yOffset;
+		float posX = (pos % (int) grid.cols) * grid.size + grid.xOffset;
+		mushrooms.emplace_back(posX, posY, texture, textureDamaged);
+		mushrooms.back().setScale(scaleFactor, scaleFactor);
+	}
+	return;
+}
+
+void collideMushrooms(int& score, std::list<Mushroom>& mushrooms, std::list<ECE_LaserBlast>& blasts, sf::Time dt)
+{
+	for (auto blast = blasts.begin(); blast != blasts.end(); ) 
+	{
+		bool hit = false;
+		blast->update(dt);
+		for (auto mushroom = mushrooms.begin(); mushroom != mushrooms.end(); ) 
+		{
+			if (mushroom->getGlobalBounds().intersects(blast->getGlobalBounds()))
+			{
+				if (mushroom->damaged)
+				{
+					mushroom = mushrooms.erase(mushroom);
+					score += 4;
+				}
+				else
+				{
+					mushroom->damage();
+				}
+				blast = blasts.erase(blast);
+				hit = true;
+				
+				break;
+			}
+			else {
+				++mushroom;
+			}
+		}
+		if (!hit)
+		{
+			++blast;
+		}
+	}
+}
+
 
 int main()
 {
@@ -71,7 +145,6 @@ int main()
 	std::list<Mushroom> mushrooms;
 
 	std::list<ECE_Centipede> centipedes;
-	centipedes.emplace_back(7, gameGrid.grid2Coord(20, 7), gameGrid, textures);
 
 	std::list<Starship> lives;
 
@@ -97,7 +170,6 @@ int main()
 	Clock clock;
 
 	bool titleScreen = true;
-	std::vector<int> generated(30, 0);
 
 	while (window.isOpen())
 	{
@@ -108,14 +180,14 @@ int main()
 				titleScreen = false;
 					/*
 					* Generate spider
-					* Generate centipede
 					*/
+				centipedes.emplace_back(7, gameGrid.grid2Coord(25, 7), gameGrid, textures);
 				generateMushrooms(10, mushrooms, mushroomGrid, textures["Mushroom0.png"], textures["Mushroom1.png"]);
 
 				for (int i = 0; i < 3; i++)
 				{
-					lives.emplace_back(vm.width*(0.75+0.025*i), vm.height*0.06, textures["Starship.png"]);
-					lives.back().setScale(1.5,1.5);
+					lives.emplace_back(vm.width*(0.75+0.025*i), vm.height*0.06, textures["StarShip.png"]);
+					lives.back().setScale(scaleFactor, scaleFactor);
 				}
 			}
 			window.clear();
@@ -209,57 +281,39 @@ int main()
 			float points = centipede.checkCollision(starship.getGlobalBounds(), blasts, mushrooms, centipedes);
 			if (points == -1)
 			{
-				std::cout << "dead :(\n";
+				centipedes.clear();
+				blasts.clear();
+				lives.pop_back();
+				starship.setPosition(vm.height / 2, vm.width - 20);
+
+				if (lives.size() == 0)
+				{
+					mushrooms.clear();
+					score = 0;
+					titleScreen = true;
+				}
+				else
+				{
+					centipedes.emplace_back(7, gameGrid.grid2Coord(25, 7), gameGrid, textures);
+				}
+				break;
 			}
 			else
 			{
 				score += points;
 			}
+
 			centipede.update(dt);
 		}
-		
-		for (auto blast = blasts.begin(); blast != blasts.end(); ) 
+		if (titleScreen)
 		{
-			bool hit = false;
-			blast->update(dt);
-			for (auto mushroom = mushrooms.begin(); mushroom != mushrooms.end(); ) 
-			{
-				if (mushroom->getGlobalBounds().intersects(blast->getGlobalBounds()))
-				{
-					if (mushroom->damaged)
-					{
-						mushroom = mushrooms.erase(mushroom);
-						score += 4;
-					}
-					else
-					{
-						mushroom->damage();
-					}
-					blast = blasts.erase(blast);
-					hit = true;
-					
-					break;
-				}
-				else {
-					++mushroom;
-				}
-			}
-			if (!hit)
-			{
-				++blast;
-			}
+			continue;
 		}
 		
-		while(true) 
-		{
-			if (blasts.size() > 0 && blasts.front().getPosition().y < 0) 
-			{
-				blasts.pop_front();
-			}
-			else
-				break;
-		}
+		collideMushrooms(score, mushrooms, blasts, dt);
 		
+		cullBlasts;
+
 		// Update the HUD text
 		std::stringstream ss;
 		ss << score;
