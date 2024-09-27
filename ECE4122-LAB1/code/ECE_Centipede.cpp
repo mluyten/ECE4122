@@ -20,24 +20,199 @@ sf::Vector2f normalize(sf::Vector2f v)
 	return sf::Vector2f(v.x / mag, v.y / mag);
 }
 
-ECE_Centipede::ECE_Centipede(size_t size, sf::Vector2f headPosition, Grid gameGrid, sf::Texture& headTexture, sf::Texture& bodyTexture)
+Segment::Segment(float startX, float startY, Grid gameGrid, sf::Texture& texture, sf::Vector2f dir)
 {
-	float maxTextureDimHead = float(headTexture.getSize().x > headTexture.getSize().y ? headTexture.getSize().x : headTexture.getSize().y);
-	float scaleFactorHead = gameGrid.size / maxTextureDimHead;
+	setTexture(texture);
+	setOrigin(texture.getSize().x/2, texture.getSize().y/2);
+	setPosition(startX, startY);
+	gameGrid_ = gameGrid;
+	this->dir = dir;
+	nextY_ = 4;
+}
 
-	float maxTextureDimBody = float(bodyTexture.getSize().x > bodyTexture.getSize().y ? bodyTexture.getSize().x : bodyTexture.getSize().y);
+Segment::Segment(sf::Vector2f start, Grid gameGrid, sf::Texture& texture, sf::Vector2f dir)
+{
+	setTexture(texture);
+	setOrigin(texture.getSize().x/2, texture.getSize().y/2);
+	setPosition(start);
+	gameGrid_ = gameGrid;
+	this->dir = dir;
+}
+
+void Segment::collide()
+{
+	lastDir = dir;
+	setPosition(gameGrid_.gridSnap(getPosition()));
+	if (descending_)
+	{
+		dir = sf::Vector2f(0,1); // DOWN
+		nextY_ += 1;
+	}
+	else
+	{
+		dir = sf::Vector2f(0,-1); // UP
+		nextY_ -= 1;
+	}
+}
+
+void Segment::rotate()
+{
+	if (dir.x == 1)
+	{
+		setRotation(0);
+	}
+	else if (dir.x == -1)
+	{
+		setRotation(180);
+	}
+	else if (dir.y == 1)
+	{
+		setRotation(270);
+	}
+	else
+	{
+		setRotation(90);
+	}
+}
+
+void Segment::update(sf::Time dt)
+{
+	sf::Vector2f newPosition = getPosition();
+	if (dir == sf::Vector2f(-1,0)) {
+		newPosition.x -= speed_ * dt.asSeconds();
+		// Check if we've arrived at beginning of row
+		if (newPosition.x < gameGrid_.col2Coord(0))
+		{
+			// Snap position to the grid
+			newPosition = gameGrid_.gridSnap(newPosition);
+			lastDir = dir;
+			// Check if we're descending the play area
+			if(descending_) {
+				// Check if we're at the end of the row
+				if (nextY_ < gameGrid_.rows-1) {
+					dir = sf::Vector2f(0,1); // DOWN
+					nextY_ += 1;
+				}
+				else {
+					dir = sf::Vector2f(0,-1); // UP
+					nextY_ -= 1;
+					descending_ = false;
+				}
+			}
+			else {
+				if (nextY_ > 1) {
+					dir = sf::Vector2f(0,-1); // UP
+					nextY_ -= 1;
+				}
+				else {
+					dir = sf::Vector2f(0,1); // DOWN
+					nextY_ += 1;
+					descending_ = true;
+				}
+			}
+			rotate();
+		}
+	}
+    else if (dir == sf::Vector2f(1,0)) {
+		newPosition.x += speed_ * dt.asSeconds();
+		// Check if we've arrived at end of row
+		if (newPosition.x >= gameGrid_.col2Coord(gameGrid_.cols-1))
+		{
+			// Snap position to the grid
+			newPosition = gameGrid_.gridSnap(newPosition);
+			lastDir = dir;
+			// Check if we're descending the play area
+			if(descending_) {
+				// Check if we're at the end of the row
+				if (nextY_ < gameGrid_.rows-1) {
+					dir = sf::Vector2f(0,1); // DOWN
+					nextY_ += 1;
+				}
+				else {
+					dir = sf::Vector2f(0,-1); // UP
+					nextY_ -= 1;
+					descending_ = false;
+				}
+			}
+			else {
+				if (nextY_ > 4) {
+					dir = sf::Vector2f(0,-1); //DOWN
+					nextY_ -= 1;
+				}
+				else {
+					dir = sf::Vector2f(0,1); // UP
+					nextY_ += 1;
+					descending_ = true;
+				}
+			}
+			rotate();
+		}
+	}
+	else if (dir == sf::Vector2f(0,1)) // DOWN
+	{
+		newPosition.y += speed_ * dt.asSeconds();
+		if (newPosition.y >= gameGrid_.row2Coord(nextY_)) 
+		{
+			newPosition = gameGrid_.gridSnap(newPosition);
+			sf::Vector2f newDir(lastDir.x*(-1), lastDir.y*(-1));
+			lastDir = dir;
+			dir = newDir;
+			rotate();
+		}
+	}
+	else if (dir == sf::Vector2f(0,-1)) // UP
+	{
+		newPosition.y -= speed_ * dt.asSeconds();
+		
+		if (newPosition.y <= gameGrid_.row2Coord(nextY_)) 
+		{
+			newPosition = gameGrid_.gridSnap(newPosition);
+			sf::Vector2f newDir(lastDir.x*(-1), lastDir.y*(-1));
+			lastDir = dir;
+			dir = newDir;
+			rotate();
+		}
+	}
+
+	setPosition(newPosition);
+}
+
+ECE_Centipede::ECE_Centipede(size_t size, sf::Vector2f headPosition, Grid gameGrid, std::map<std::string,sf::Texture>& textures)
+{
+	sf::Vector2u headSize = textures["CentipedeHead.png"].getSize();
+	float maxTextureDimHead = float(headSize.x > headSize.y ? headSize.x : headSize.y);
+	float scaleFactorHead = gameGrid.size / maxTextureDimHead;
+	sf::Vector2u bodySize = textures["CentipedeBody.png"].getSize();
+	float maxTextureDimBody = float(textures["CentipedeBody.png"].getSize().x > bodySize.y ? bodySize.x : bodySize.y);
 	float scaleFactorBody = gameGrid.size / maxTextureDimBody;
 	
-	segments_.emplace_front(headPosition.x, headPosition.y, gameGrid, headTexture, sf::Vector2f(1,0));
+	segments_.emplace_front(headPosition.x, headPosition.y, gameGrid, textures["CentipedeHead.png"], sf::Vector2f(1,0));
 	segments_.front().setScale(scaleFactorHead, scaleFactorHead);
+	segments_.front().isHead = true;
 	for (size_t i = 1; i < size; i++)
 	{
-		segments_.emplace_back(headPosition.x - i*gameGrid.size, headPosition.y, gameGrid, bodyTexture, sf::Vector2f(1,0));
+		segments_.emplace_back(headPosition.x - i*gameGrid.size, headPosition.y, gameGrid, textures["CentipedeBody.png"], sf::Vector2f(1,0));
 		segments_.back().setScale(scaleFactorBody, scaleFactorBody);
 	}
 	
-	bodyTexture_ = &bodyTexture;
-	headTexture_ = &headTexture;
+	this->textures_ = &textures;
+	gameGrid_ = gameGrid;
+}
+
+ECE_Centipede::ECE_Centipede(std::list<Segment>& segments, Grid gameGrid, std::map<std::string,sf::Texture>& textures)
+{
+	sf::Vector2u headSize = textures["CentipedeHead.png"].getSize();
+	float maxTextureDimHead = float(headSize.x > headSize.y ? headSize.x : headSize.y);
+	float scaleFactorHead = gameGrid.size / maxTextureDimHead;
+	sf::Vector2u bodySize = textures["CentipedeBody.png"].getSize();
+	float maxTextureDimBody = float(textures["CentipedeBody.png"].getSize().x > bodySize.y ? bodySize.x : bodySize.y);
+	float scaleFactorBody = gameGrid.size / maxTextureDimBody;
+	
+	for (auto& segment : segments)
+	{
+		segments_.emplace_back(segment);
+	}
+	this->textures_ = &textures;
 	gameGrid_ = gameGrid;
 }
 
@@ -93,11 +268,12 @@ void ECE_Centipede::draw(sf::RenderWindow& window)
 	}
 }
 
-sf::Vector2f ECE_Centipede::checkCollision(sf::FloatRect object, std::list<ECE_Centipede>* Centipedes)
+float ECE_Centipede::checkCollision(sf::FloatRect ship, std::list<ECE_LaserBlast>& blasts, std::list<Mushroom>& mushrooms, std::list<ECE_Centipede>& Centipedes)
 {
-	if (Centipedes == nullptr) // This is not a laser collision
+	float score = 0;
+	for (auto& mushroom : mushrooms)
 	{
-		if (object.intersects(segments_.front().getGlobalBounds())) {
+		if (mushroom.getGlobalBounds().intersects(segments_.front().getGlobalBounds())) {
 			if (segments_.front().dir == sf::Vector2f(0,-1) || // UP
 					segments_.front().dir == sf::Vector2f(0,1))
 			{
@@ -109,169 +285,34 @@ sf::Vector2f ECE_Centipede::checkCollision(sf::FloatRect object, std::list<ECE_C
 			}
 		}
 	}
-	else
-	{
-		for (auto segment = segments_.begin(); segment != segments_.end(); ) {
-			if (object.intersects(segment->getGlobalBounds()))
-			{
-				// Remove segment and add new centipede
-				return segment->getPosition();
-			}
-			else
-			{
-				++segment;
-			}
-		}
-	}
-	return sf::Vector2f(-1, -1);
-}
-
-// This the constructor and it is called when we create an object
-Segment::Segment(float startX, float startY, Grid gameGrid, sf::Texture& texture, sf::Vector2f dir)
-{
-	setTexture(texture);
-	setOrigin(texture.getSize().x/2, texture.getSize().y/2);
-	setPosition(startX, startY);
-	gameGrid_ = gameGrid;
-	this->dir = dir;
-	nextPos_ = sf::Vector2u(0,4);
-}
-
-Segment::Segment(sf::Vector2f start, Grid gameGrid, sf::Texture& texture, sf::Vector2f dir)
-{
-	setTexture(texture);
-	setOrigin(texture.getSize().x/2, texture.getSize().y/2);
-	setPosition(start);
-	gameGrid_ = gameGrid;
-	this->dir = dir;
-}
-
-void Segment::collide()
-{
-	lastDir = dir;
-	setPosition(gameGrid_.gridSnap(getPosition()));
-	if (descending)
-	{
-		dir = sf::Vector2f(0,1); // DOWN
-		nextPos_.y += 1;
-	}
-	else
-	{
-		dir = sf::Vector2f(0,-1); // UP
-		nextPos_.y -= 1;
-	}
-}
-
-void Segment::update(sf::Time dt)
-{
-	sf::Vector2f newPosition = getPosition();
-	if (dir == sf::Vector2f(-1,0)) {
-		newPosition.x -= speed_ * dt.asSeconds();
-		// Check if we've arrived at beginning of row
-		if (newPosition.x < gameGrid_.col2Coord(0))
+	for (auto segment = segments_.begin(); segment != segments_.end(); ) {
+		bool hit = false;
+		if (ship.intersects(segment->getGlobalBounds()))
 		{
-			// Snap position to the grid
-			newPosition = gameGrid_.gridSnap(newPosition);
-			lastDir = dir;
-			// Check if we're descending the play area
-			if(descending) {
-				// Check if we're at the end of the row
-				if (nextPos_.y < gameGrid_.rows-1) {
-					dir = sf::Vector2f(0,1); // DOWN
-					nextPos_.y += 1;
-				}
-				else {
-					dir = sf::Vector2f(0,-1); // UP
-					nextPos_.y -= 1;
-					descending = false;
-				}
+			return -1;
+		}
+		for (auto blast = blasts.begin(); blast != blasts.end();)
+		{
+			if (blast->getGlobalBounds().intersects(segment->getGlobalBounds()))
+			{
+				hit = true;
+				blast = blasts.erase(blast);
+				score+=10;
+				sf::Vector2u mushroomSize = (*textures_)["Mushroom0.png"].getSize();
+				float scaleFactor = gameGrid_.size / float(mushroomSize.x > mushroomSize.y ? mushroomSize.x : mushroomSize.y);
+				mushrooms.emplace_back(gameGrid_.gridSnap(segment->getPosition()), (*textures_)["Mushroom0.png"], (*textures_)["Mushroom1.png"]);
+				mushrooms.back().setScale(scaleFactor, scaleFactor);
+				segment = segments_.erase(segment);
 			}
 			else {
-				if (nextPos_.y > 1) {
-					dir = sf::Vector2f(0,-1); // UP
-					nextPos_.y -= 1;
-				}
-				else {
-					dir = sf::Vector2f(0,1); // DOWN
-					nextPos_.y += 1;
-					descending = true;
-				}
+				++blast;
 			}
 		}
-	}
-    else if (dir == sf::Vector2f(1,0)) {
-		newPosition.x += speed_ * dt.asSeconds();
-		// Check if we've arrived at end of row
-		if (newPosition.x >= gameGrid_.col2Coord(gameGrid_.cols-1))
+		if (!hit) 
 		{
-			// Snap position to the grid
-			newPosition = gameGrid_.gridSnap(newPosition);
-			lastDir = dir;
-			// Check if we're descending the play area
-			if(descending) {
-				// Check if we're at the end of the row
-				if (nextPos_.y < gameGrid_.rows-1) {
-					dir = sf::Vector2f(0,1); // DOWN
-					nextPos_.y += 1;
-				}
-				else {
-					dir = sf::Vector2f(0,-1); // UP
-					nextPos_.y -= 1;
-					descending = false;
-				}
-			}
-			else {
-				if (nextPos_.y > 4) {
-					dir = sf::Vector2f(0,-1); //DOWN
-					nextPos_.y -= 1;
-				}
-				else {
-					dir = sf::Vector2f(0,1); // UP
-					nextPos_.y += 1;
-					descending = true;
-				}
-			}
+			++segment;
 		}
 	}
-	else if (dir == sf::Vector2f(0,1)) // DOWN
-	{
-		newPosition.y += speed_ * dt.asSeconds();
-		if (newPosition.y >= gameGrid_.row2Coord(nextPos_.y)) 
-		{
-			newPosition = gameGrid_.gridSnap(newPosition);
-			sf::Vector2f newDir(lastDir.x*(-1), lastDir.y*(-1));
-			lastDir = dir;
-			dir = newDir;
-			//if (newPosition.x > gameGrid_.col2Coord(gameGrid_.cols-1)/2)
-			//{
-			//	dir = lastDir * (-1);
-			//}
-			//else 
-			//{
-			//	dir = sf::Vector2f(1,0);
-			//}
-		}
-	}
-	else if (dir == sf::Vector2f(0,-1)) // UP
-	{
-		newPosition.y -= speed_ * dt.asSeconds();
-		
-		if (newPosition.y <= gameGrid_.row2Coord(nextPos_.y)) 
-		{
-			newPosition = gameGrid_.gridSnap(newPosition);
-			sf::Vector2f newDir(lastDir.x*(-1), lastDir.y*(-1));
-			lastDir = dir;
-			dir = newDir;
-			//if (newPosition.x > gameGrid_.col2Coord(gameGrid_.cols-1)/2)
-			//{
-			//	dir = sf::Vector2f(-1,0);
-			//}
-			//else 
-			//{
-			//	dir = sf::Vector2f(1,0);
-			//}
-		}
-	}
-
-	setPosition(newPosition);
+	
+	return score;
 }

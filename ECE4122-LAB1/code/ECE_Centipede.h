@@ -1,7 +1,10 @@
 #pragma once
 #include <list>
 #include <iterator>
+#include <map>
 #include "GameUtils.h"
+#include "ECE_LaserBlast.h"
+#include "Mushroom.h"
 #include <SFML/Graphics.hpp>
 
 class Segment : public sf::Sprite
@@ -16,21 +19,22 @@ public:
 		};
 
 private:
-	bool descending = true;
-	float speed_ = 450.0f;
-
+	bool descending_ = true;
+	float speed_ = 100.0f;
 	Grid gameGrid_;
-	bool isHead = true;
+	
 	sf::Vector2f ignore_; // In case we have to clip through 
-	sf::Vector2u nextPos_;
+	int nextY_;
 public:
 	Segment(float startX, float startY, Grid gameGrid, sf::Texture& texture, sf::Vector2f dir);
 
 	Segment(sf::Vector2f start, Grid gameGrid, sf::Texture& texture, sf::Vector2f dir);
 
 	void collide();
+	void rotate();
 	void update(sf::Time dt);
-
+	
+	bool isHead = false;
 	sf::Vector2f dir;
 	sf::Vector2f lastDir;
 };
@@ -38,15 +42,15 @@ public:
 class ECE_Centipede 
 {
 private:
-	sf::Texture* headTexture_;
-	sf::Texture* bodyTexture_;
+	std::map<std::string,sf::Texture>* textures_;
 
 	std::list<Segment> segments_;
 	Grid gameGrid_;
 public:
-	ECE_Centipede(size_t size, sf::Vector2f headPosition, Grid gameGrid, sf::Texture& headTexture, sf::Texture& bodyTexture);
+	ECE_Centipede(size_t size, sf::Vector2f headPosition, Grid gameGrid, std::map<std::string,sf::Texture>& textures);
+	ECE_Centipede(std::list<Segment>& segments, Grid gameGrid, std::map<std::string,sf::Texture>& textures);
 
 	void update(sf::Time dt);
 	void draw(sf::RenderWindow& window);
-	sf::Vector2f checkCollision(sf::FloatRect object, std::list<ECE_Centipede>* Centipedes=nullptr);
+	float checkCollision(sf::FloatRect ship, std::list<ECE_LaserBlast>& blasts, std::list<Mushroom>& mushrooms, std::list<ECE_Centipede>& Centipedes);
 };

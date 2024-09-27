@@ -12,6 +12,7 @@
 #include <list>
 #include <random>
 #include <vector>
+#include <map>
 #include <SFML/Graphics.hpp>
 
 using namespace sf;
@@ -29,52 +30,23 @@ int main()
 
 	int score = 0;
 
-	sf::Texture titleScreenTexture;
-	if (!titleScreenTexture.loadFromFile("graphics/TitleScreen.png")) 
-	{
-		std::cout << "Failed to load graphics/TitleScreen.png\n";
-	}
-	sf::Texture spiderTexture;
-	if(!spiderTexture.loadFromFile("graphics/Spider.png")) 
-	{
-		std::cout << "Failed to load graphics/Spider.png\n";
-	}
-	sf::Texture mushroomTexture;
-	if (!mushroomTexture.loadFromFile("graphics/Mushroom0.png")) 
-	{
-		std::cout << "Failed to load graphics/Mushroom0.png\n";
-	}
-	sf::Texture damagedMushroomTexture;
-	if (!damagedMushroomTexture.loadFromFile("graphics/Mushroom1.png")) 
-	{
-		std::cout << "Failed to load graphics/Mushroom1.png\n";
-	}
-	sf::Texture starshipTexture;
-	if (!starshipTexture.loadFromFile("graphics/StarShip.png"))
-	{
-		std::cout << "Failed to load graphics/StarShip.png\n";
-	}
-	sf::Texture laserTexture;
-	if (!laserTexture.loadFromFile("graphics/laser.png"))
-	{
-		std::cout << "Failed to load graphics/laser.png\n";
-	}
-	sf::Texture headTexture;
-	if (!headTexture.loadFromFile("graphics/CentipedeHead.png"))
-	{
-		std::cout << "Failed to load graphics/CentipedeHead.png\n";
-	}
-	sf::Texture bodyTexture;
-	if (!bodyTexture.loadFromFile("graphics/CentipedeBody.png"))
-	{
-		std::cout << "Failed to load graphics/CentipedeBody.png\n";
-	}
+	std::map<std::string, sf::Texture> textures;
 
+	std::vector<std::string> assets = {"TitleScreen.png", "Spider.png", "Mushroom0.png", "Mushroom1.png", "StarShip.png", "Laser.png", "CentipedeHead.png", "CentipedeBody.png"};
+
+	for(auto& asset : assets)
+	{
+		textures.emplace(asset, sf::Texture());
+		if (!textures[asset].loadFromFile("graphics/" + asset)) 
+		{
+			std::cout << "Failed to load graphics/" << asset << "\n";
+		}
+	}
 		// Create a sprite
 	sf::Sprite titleScreenSprite;
 
 	// Attach the texture to the sprite
-	titleScreenSprite.setTexture(titleScreenTexture);
+	titleScreenSprite.setTexture(textures["TitleScreen.png"]);
 
 	// Set the spriteBackground to cover the screen
 	titleScreenSprite.setPosition(0, 0);
@@ -86,7 +58,7 @@ int main()
 			
 
 	// Create a Starship
-	Starship starship(vm.height / 2, vm.width - 20, starshipTexture);
+	Starship starship(vm.height / 2, vm.width - 20, textures["StarShip.png"]);
 	starship.setScale(scaleFactor, scaleFactor);
 	starship.setRange(Vector2f(0, vm.height-5*gameGrid.size), Vector2f(vm.width, vm.height));
 
@@ -99,7 +71,7 @@ int main()
 	std::list<Mushroom> mushrooms;
 
 	std::list<ECE_Centipede> centipedes;
-	centipedes.emplace_back(7, gameGrid.grid2Coord(4, 7), gameGrid, headTexture, bodyTexture);
+	centipedes.emplace_back(7, gameGrid.grid2Coord(20, 7), gameGrid, textures);
 
 	std::list<Starship> lives;
 
@@ -138,11 +110,11 @@ int main()
 					* Generate spider
 					* Generate centipede
 					*/
-				generateMushrooms(70, mushrooms, mushroomGrid, mushroomTexture, damagedMushroomTexture);
+				generateMushrooms(10, mushrooms, mushroomGrid, textures["Mushroom0.png"], textures["Mushroom1.png"]);
 
 				for (int i = 0; i < 3; i++)
 				{
-					lives.emplace_back(vm.width*(0.75+0.025*i), vm.height*0.06, starshipTexture);
+					lives.emplace_back(vm.width*(0.75+0.025*i), vm.height*0.06, textures["Starship.png"]);
 					lives.back().setScale(1.5,1.5);
 				}
 			}
@@ -177,7 +149,7 @@ int main()
 		if (Keyboard::isKeyPressed(Keyboard::Space))
 		{
 			if (!spacePressed) {
-				blasts.emplace_back(starship.getPosition(), laserTexture);
+				blasts.emplace_back(starship.getPosition(), textures["Laser.png"]);
 				blasts.back().setScale(scaleFactor, scaleFactor);
 				spacePressed = true;
 			}
@@ -231,6 +203,20 @@ int main()
 		// Update the delta time
 		sf::Time dt = clock.restart();
 		starship.update(dt);
+
+		for (auto& centipede : centipedes)
+		{
+			float points = centipede.checkCollision(starship.getGlobalBounds(), blasts, mushrooms, centipedes);
+			if (points == -1)
+			{
+				std::cout << "dead :(\n";
+			}
+			else
+			{
+				score += points;
+			}
+			centipede.update(dt);
+		}
 		
 		for (auto blast = blasts.begin(); blast != blasts.end(); ) 
 		{
@@ -263,16 +249,6 @@ int main()
 				++blast;
 			}
 		}
-
-		for(auto& centipede : centipedes)
-		{
-			centipede.update(dt);
-			for (auto& mushroom : mushrooms) 
-			{
-				centipede.checkCollision(mushroom.getGlobalBounds());
-			}
-		}
-
 		
 		while(true) 
 		{
