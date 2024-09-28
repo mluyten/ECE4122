@@ -34,6 +34,8 @@ public:
 	void collide();
 	void rotate();
 	void update(sf::Time dt);
+	void reverse();
+	void setHead(sf::Texture& texture);
 	
 	bool isHead = false;
 	sf::Vector2f dir;
@@ -53,5 +55,6 @@ public:
 
 	void update(sf::Time dt);
 	void draw(sf::RenderWindow& window);
-	float checkCollision(sf::FloatRect ship, std::list<ECE_LaserBlast>& blasts, std::list<Mushroom>& mushrooms, std::list<ECE_Centipede>& Centipedes);
+	float checkCollision(sf::FloatRect ship, std::list<ECE_LaserBlast>& blasts, std::list<Mushroom>& mushrooms, std::list<ECE_Centipede>& Centipedes);\
+	size_t size();
 };

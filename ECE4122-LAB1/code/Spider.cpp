@@ -6,6 +6,7 @@ Spider::Spider(float startX, float startY, sf::Texture& texture)
     setTexture(texture);
 	setOrigin(texture.getSize().x/2, texture.getSize().y/2);
 	setPosition(startX, startY);
+    initialPos_ = getPosition();
     xDir_ = 1;
 	state_ = 1; 
 	nextState_ = 0;
@@ -16,6 +17,7 @@ Spider::Spider(sf::Vector2f start, sf::Texture& texture)
     setTexture(texture);
 	setOrigin(texture.getSize().x/2, texture.getSize().y/2);
 	setPosition(start);
+    initialPos_ = start;
     xDir_ = 1;
 	state_ = 1; 
 	nextState_ = 0;
@@ -32,13 +34,13 @@ void Spider::update(sf::Time dt)
     std::random_device rd;  // a seed source for the random number engine
     std::mt19937 gen(rd()); // mersenne_twister_engine seeded with rd()
 	std::uniform_int_distribution<> distrib(25, 100);
+    
     if (state_ == 0) 
     {
         sf::Vector2f nextPos = getPosition() + commands_.front().first * speed_ * dt.asSeconds();
         sf::Vector2f boundedPos = coerceBounds(nextPos, minRange_, maxRange_);
         if (time_ >= commands_.front().second || nextPos != boundedPos) 
         {
-            std::cout << commands_.front().first.y << " " << commands_.front().first.y * speed_ * dt.asSeconds() << std::endl;
             commands_.pop();
             time_ = 0;
             if (commands_.size() == 0)
@@ -90,4 +92,16 @@ void Spider::update(sf::Time dt)
         else
             time_ += dt.asSeconds();
     }
+}
+
+void Spider::reset(float timeout)
+{
+    std::queue<std::pair<sf::Vector2f, float>> empty;
+    std::swap(commands_, empty); // Empty commands queue
+    commands_.push(std::pair<sf::Vector2f, float>(getPosition(), timeout));
+    state_ = 3; // Wait timeout;
+    nextState_ = 1; // Zig zag after timeout
+    xDir_ = 1;
+    time_ = 0;
+    setPosition(initialPos_);
 }

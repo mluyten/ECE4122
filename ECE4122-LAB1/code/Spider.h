@@ -19,7 +19,7 @@ private:
 	float xDir_;
 	int state_; 
 	int nextState_;
-
+	sf::Vector2f initialPos_;
 public:
 	Spider(float startX, float startY, sf::Texture& texture);
 	Spider(sf::Vector2f start, sf::Texture& texture);
@@ -27,5 +27,5 @@ public:
 	void setRange(sf::Vector2f minRange, sf::Vector2f maxRange);
 
 	void update(sf::Time dt);
-
+	void reset(float timeout=0);
 };

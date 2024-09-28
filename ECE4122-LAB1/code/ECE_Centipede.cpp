@@ -158,6 +158,27 @@ void Segment::update(sf::Time dt)
 	setPosition(newPosition);
 }
 
+void Segment::setHead(sf::Texture& texture) 
+{
+	if (dir.y == 1)
+		nextY_ = ceil((getPosition().y - gameGrid_.yOffset) / gameGrid_.size) + gameGrid_.yOffset;
+	else if (dir.y == -1)
+		nextY_ = floor((getPosition().y - gameGrid_.yOffset) / gameGrid_.size) + gameGrid_.yOffset;
+	else
+		nextY_ = gameGrid_.y2Row(getPosition().y);
+
+	setTexture(texture);
+}
+
+void Segment::reverse()
+{
+	dir.x *= -1;
+	dir.y *= -1;
+	lastDir.x *= -1;
+	lastDir.y *= -1;
+	rotate();
+}
+
 ECE_Centipede::ECE_Centipede(size_t size, sf::Vector2f headPosition, Grid gameGrid, std::map<std::string,sf::Texture>& textures)
 {
 	sf::Vector2u headSize = textures["CentipedeHead.png"].getSize();
@@ -290,6 +311,19 @@ float ECE_Centipede::checkCollision(sf::FloatRect ship, std::list<ECE_LaserBlast
 				mushrooms.back().setScale(scaleFactor, scaleFactor);
 
 				segment = segments_.erase(segment);
+				if (segment != segments_.end())
+				{
+					std::list<Segment> newCentipede;
+					while (segment != segments_.end())
+					{
+						newCentipede.emplace_front(*segment);
+						newCentipede.front().reverse();
+						segment = segments_.erase(segment);
+					}
+					newCentipede.front().setHead((*textures_)["CentipedeHead.png"]);
+					Centipedes.emplace_back(newCentipede, gameGrid_, *textures_);
+				}
+				return score;
 			}
 			else {
 				++blast;
@@ -302,4 +336,9 @@ float ECE_Centipede::checkCollision(sf::FloatRect ship, std::list<ECE_LaserBlast
 	}
 	
 	return score;
+}
+
+size_t ECE_Centipede::size()
+{
+	return segments_.size();
 }
