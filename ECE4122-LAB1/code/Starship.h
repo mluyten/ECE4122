@@ -1,4 +1,5 @@
 #pragma once
+#include "GameUtils.h"
 #include <SFML/Graphics.hpp>
 
 class Starship : public sf::Sprite

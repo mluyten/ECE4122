@@ -4,13 +4,7 @@
 #include <SFML/Graphics.hpp>
 
 struct Grid {
-	Grid(size_t s, size_t width, size_t height) : size(s) 
-	{
-        cols = width / size;
-	    rows = height / size;
-        xOffset = (width - cols * size + size) / 2;
-		yOffset = (height - rows * size + size) / 2;
-    }
+	Grid(size_t s, size_t width, size_t height);
 	Grid() {}
 	size_t size;
     size_t xOffset;
@@ -18,38 +12,26 @@ struct Grid {
 	size_t cols;
 	size_t rows;
 
-	sf::Vector2f grid2Coord(size_t r, size_t c) 
-	{
-		return sf::Vector2f(c * size + xOffset, r * size + yOffset);
-	}
+	sf::Vector2f grid2Coord(size_t r, size_t c);
 
-	float col2Coord(size_t c)
-	{
-		return c * size + xOffset;
-	}
+	float col2Coord(size_t c);
 
-	float row2Coord(size_t r) 
-	{
-		return r * size + yOffset;
-	}
+	float row2Coord(size_t r);
 
-	size_t x2Col (float x)
-	{
-		return std::round((x - xOffset) / size);
-	}
+	size_t x2Col (float x);
 
-	size_t y2Row (float y)
-	{
-		return std::round((y - yOffset) / size);
-	}
+	size_t y2Row (float y);
 
-	sf::Vector2f gridSnap(float x, float y) 
-	{
-		return sf::Vector2f(std::round((x - xOffset) / size) + xOffset, std::round((y - yOffset) / size) + yOffset);
-	}
+	sf::Vector2f gridSnap(float x, float y);
 
-	sf::Vector2f gridSnap(sf::Vector2f pos) 
-	{
-		return sf::Vector2f(std::round((pos.x - xOffset) / size) * size + xOffset, std::round((pos.y - yOffset) / size) * size + yOffset);
-	}
+	sf::Vector2f gridSnap(sf::Vector2f pos);
 };
+
+float distance(sf::Vector2f a, sf::Vector2f b);
+
+float magnitude(sf::Vector2f v);
+
+// Function to normalize a vector
+sf::Vector2f normalize(sf::Vector2f v);
+
+sf::Vector2f coerceBounds(sf::Vector2f pos, sf::Vector2f lower, sf::Vector2f upper);

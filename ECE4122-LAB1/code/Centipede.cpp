@@ -1,4 +1,4 @@
-// Pong.cpp : Defines the entry point for the console application.
+// Centipede.cpp : Defines the entry point for the console application.
 //
 
 #include "Mushroom.h"
@@ -7,6 +7,7 @@
 #include "ECE_LaserBlast.h"
 #include "ECE_Centipede.h"
 #include "GameUtils.h"
+
 #include <sstream>
 #include <cstdlib>
 #include <iostream>
@@ -14,6 +15,7 @@
 #include <random>
 #include <vector>
 #include <map>
+
 #include <SFML/Graphics.hpp>
 
 using namespace sf;
@@ -148,6 +150,9 @@ int main()
 
 	std::list<Starship> lives;
 
+	Spider spider(-gameGrid.size, vm.height-5*gameGrid.size, textures["Spider.png"]);
+	spider.setRange(Vector2f(-gameGrid.size, vm.height-10*gameGrid.size), Vector2f(vm.width+gameGrid.size, vm.height+gameGrid.size/2));
+
 	// Create a Text object called HUD
 	Text hud;
 
@@ -181,8 +186,8 @@ int main()
 					/*
 					* Generate spider
 					*/
-				centipedes.emplace_back(7, gameGrid.grid2Coord(25, 7), gameGrid, textures);
-				generateMushrooms(10, mushrooms, mushroomGrid, textures["Mushroom0.png"], textures["Mushroom1.png"]);
+				centipedes.emplace_back(7, gameGrid.grid2Coord(4, 7), gameGrid, textures);
+				generateMushrooms(30, mushrooms, mushroomGrid, textures["Mushroom0.png"], textures["Mushroom1.png"]);
 
 				for (int i = 0; i < 3; i++)
 				{
@@ -274,7 +279,6 @@ int main()
 		*/
 		// Update the delta time
 		sf::Time dt = clock.restart();
-		starship.update(dt);
 
 		for (auto& centipede : centipedes)
 		{
@@ -294,7 +298,7 @@ int main()
 				}
 				else
 				{
-					centipedes.emplace_back(7, gameGrid.grid2Coord(25, 7), gameGrid, textures);
+					centipedes.emplace_back(7, gameGrid.grid2Coord(4, 7), gameGrid, textures);
 				}
 				break;
 			}
@@ -312,7 +316,10 @@ int main()
 		
 		collideMushrooms(score, mushrooms, blasts, dt);
 		
-		cullBlasts;
+		cullBlasts(blasts); // Remove blasts that are out of frame
+
+		spider.update(dt);
+		starship.update(dt);
 
 		// Update the HUD text
 		std::stringstream ss;
@@ -328,6 +335,7 @@ int main()
 		window.clear(); 
 		window.draw(hud);
 		window.draw(starship);
+		window.draw(spider);
 		
 		for (auto& blast : blasts) 
 		{

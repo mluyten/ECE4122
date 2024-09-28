@@ -67,40 +67,22 @@ void Starship::stopDown()
 
 void Starship::update(sf::Time dt)
 {
-	sf::Vector2f newPosition = getPosition();
+	sf::Vector2f nextPos = getPosition();
 	if (movingLeft_) {
-		newPosition.x -= speed_ * dt.asSeconds();
+		nextPos.x -= speed_ * dt.asSeconds();
 	}
 
 	if (movingRight_) {
-		newPosition.x += speed_ * dt.asSeconds();
+		nextPos.x += speed_ * dt.asSeconds();
 	}
 
 	if (movingDown_) {
-		newPosition.y += speed_ * dt.asSeconds();
+		nextPos.y += speed_ * dt.asSeconds();
 	}
 
 	if (movingUp_) {
-		newPosition.y -= speed_ * dt.asSeconds();
+		nextPos.y -= speed_ * dt.asSeconds();
 	}
 
-	if (newPosition.x > maxRange_.x)
-	{
-		newPosition.x = maxRange_.x;
-	}
-	else if (newPosition.x < minRange_.x) 
-	{
-		newPosition.x =- minRange_.x;
-	}
-
-	if  (newPosition.y > maxRange_.y)
-	{
-		newPosition.y = maxRange_.y;
-	}
-	else if (newPosition.y < minRange_.y)
-	{
-		newPosition.y = minRange_.y;
-	}
-
-	setPosition(newPosition);
+	setPosition(coerceBounds(nextPos, minRange_, maxRange_));
 }

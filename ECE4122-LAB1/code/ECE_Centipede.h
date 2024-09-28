@@ -2,6 +2,7 @@
 #include <list>
 #include <iterator>
 #include <map>
+#include <iostream>
 #include "GameUtils.h"
 #include "ECE_LaserBlast.h"
 #include "Mushroom.h"
