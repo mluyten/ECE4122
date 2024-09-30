@@ -260,10 +260,10 @@ int main()
 		spider.eatMushrooms(mushrooms);
 
 		// Checks blast/mushroom collisions and changes mushrooms as needed. Updates score
-		blastMushrooms(score, blasts, mushrooms, dt);
+		blastMushrooms(score, blasts, mushrooms);
 
 		// Checks if spider is hit and "kills" is if so. Updates score
-		blastSpider(score, blasts, spider, dt);
+		blastSpider(score, blasts, spider);
 		
 		cullBlasts(blasts); // Remove blasts that are out of frame
 
