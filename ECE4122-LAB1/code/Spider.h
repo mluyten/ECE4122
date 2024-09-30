@@ -16,15 +16,22 @@ This is the header for the Spider class.
 #include "GameUtils.h"
 #include <SFML/Graphics.hpp>
 
+// The spider class is a sprite that moves around the game are in a
+// pseudo-random manner. It moves across the screen in  a zig-zag
+// pattern, stops, moves up and down, and repeats.
+// If the spider intersects any mushrooms, it "eats" or removes the mushroom
 class Spider : public sf::Sprite
 {
 private:
 	float speed_ = 350.0f;
 
+	// The boundind box in which the spider can exist
 	sf::Vector2f minRange_;
 	sf::Vector2f maxRange_;
 
+	// The time spent per command
 	float time_;
+	// Queue of commands
 	std::queue<std::pair<sf::Vector2f, float>> commands_;
 
 	float xDir_;

@@ -7,9 +7,13 @@ Description:
 This implements the Centipede class. This was by-far the most painful part and caused me emotional pain for days on end.
 It is not complete of bug-free (haha), but the time for fixing it has passed.
 */
-
 #include "ECE_Centipede.h"
 
+// Constructor
+// startX, startY - starting positon of segment
+// gameGrid - grid object that describes game grid
+// texture - texture of sprite
+// dir - unit vector of direction segment moves
 Segment::Segment(float startX, float startY, Grid gameGrid, sf::Texture& texture, sf::Vector2f dir)
 {
 	setTexture(texture);
@@ -20,6 +24,11 @@ Segment::Segment(float startX, float startY, Grid gameGrid, sf::Texture& texture
 	nextY_ = gameGrid.y2Row(startY);
 }
 
+// Constructor
+// start- starting positon vector of segment
+// gameGrid - grid object that describes game grid
+// texture - texture of sprite
+// dir - unit vector of direction segment moves
 Segment::Segment(sf::Vector2f start, Grid gameGrid, sf::Texture& texture, sf::Vector2f dir)
 {
 	setTexture(texture);
@@ -30,6 +39,7 @@ Segment::Segment(sf::Vector2f start, Grid gameGrid, sf::Texture& texture, sf::Ve
 	nextY_ = gameGrid.y2Row(start.y);
 }
 
+// Adjusts position and direction of a segment when segment collides with something
 void Segment::collide()
 {
 	lastDir = dir;
@@ -44,28 +54,26 @@ void Segment::collide()
 		dir = sf::Vector2f(0,-1); // UP
 		nextY_ -= 1;
 	}
+	return;
 }
 
+// Rotates texture based on direction
 void Segment::rotate()
 {
 	if (dir.x == 1)
-	{
 		setRotation(0);
-	}
 	else if (dir.x == -1)
-	{
 		setRotation(180);
-	}
 	else if (dir.y == 1)
-	{
 		setRotation(270);
-	}
 	else
-	{
 		setRotation(90);
-	}
+
+	return;
 }
 
+// Updates postion based on time
+// dt - time difference from last update
 void Segment::update(sf::Time dt)
 {
 	sf::Vector2f newPosition = getPosition();
@@ -166,8 +174,22 @@ void Segment::update(sf::Time dt)
 	}
 
 	setPosition(newPosition);
+	return;
 }
 
+// Reverses direction of travel
+void Segment::reverse()
+{
+	dir.x *= -1;
+	dir.y *= -1;
+	lastDir.x *= -1;
+	lastDir.y *= -1;
+	rotate();
+	return;
+}
+
+// Sets a segment to be a head
+// texture - head segment texture to apply to this segment
 void Segment::setHead(sf::Texture& texture) 
 {
 	if (dir.y == 1)
@@ -178,17 +200,14 @@ void Segment::setHead(sf::Texture& texture)
 		nextY_ = gameGrid_.y2Row(getPosition().y);
 
 	setTexture(texture);
+	return;
 }
 
-void Segment::reverse()
-{
-	dir.x *= -1;
-	dir.y *= -1;
-	lastDir.x *= -1;
-	lastDir.y *= -1;
-	rotate();
-}
-
+// Constructor
+// size - number of segments in desired centipede
+// headPosition- starting positon vector of head segment
+// gameGrid - grid object that describes game grid
+// textures - texture of sprite
 ECE_Centipede::ECE_Centipede(size_t size, sf::Vector2f headPosition, Grid gameGrid, std::map<std::string,sf::Texture>& textures)
 {
 	sf::Vector2u headSize = textures["CentipedeHead.png"].getSize();
@@ -211,6 +230,10 @@ ECE_Centipede::ECE_Centipede(size_t size, sf::Vector2f headPosition, Grid gameGr
 	gameGrid_ = gameGrid;
 }
 
+// Constructor
+// segments - list of segments to become its own centipede
+// gameGrid - grid object that describes game grid
+// textures - texture of sprite
 ECE_Centipede::ECE_Centipede(std::list<Segment>& segments, Grid gameGrid, std::map<std::string,sf::Texture>& textures)
 {
 	sf::Vector2u headSize = textures["CentipedeHead.png"].getSize();
@@ -228,6 +251,8 @@ ECE_Centipede::ECE_Centipede(std::list<Segment>& segments, Grid gameGrid, std::m
 	gameGrid_ = gameGrid;
 }
 
+// Updates postion based on time
+// dt - time difference from last update
 void ECE_Centipede::update(sf::Time dt)
 {
 	for(auto it = segments_.begin(); it != segments_.end(); ++it)
@@ -270,17 +295,24 @@ void ECE_Centipede::update(sf::Time dt)
 			}
 		}
 	}
+	return;
 }
 
+// Draws all centipede segments
+// window - SF window to draw sprites in
 void ECE_Centipede::draw(sf::RenderWindow& window)
 {
-	for(auto& segment : segments_)
-	{
-		window.draw(segment);
-	}
+	for(auto& segment : segments_) window.draw(segment);
+	return;
 }
 
-float ECE_Centipede::checkCollision(sf::FloatRect ship, std::list<ECE_LaserBlast>& blasts, std::list<Mushroom>& mushrooms, std::list<ECE_Centipede>& Centipedes)
+// Check collisions
+// ship - Starship that could collide 
+// blasts - list of blasts that may collide with segments
+// mushooms - list of mushrooms that may collide with
+// centipedes - list of centipedes. If centipede splits, new centipede is added
+// returns - points earned by a blast hitting a segment, returns -1 if centipede collides with starship
+float ECE_Centipede::checkCollision(sf::FloatRect ship, std::list<ECE_LaserBlast>& blasts, std::list<Mushroom>& mushrooms, std::list<ECE_Centipede>& centipedes)
 {
 	float score = 0;
 	for (auto& mushroom : mushrooms)
@@ -331,7 +363,7 @@ float ECE_Centipede::checkCollision(sf::FloatRect ship, std::list<ECE_LaserBlast
 						segment = segments_.erase(segment);
 					}
 					newCentipede.front().setHead((*textures_)["CentipedeHead.png"]);
-					Centipedes.emplace_back(newCentipede, gameGrid_, *textures_);
+					centipedes.emplace_back(newCentipede, gameGrid_, *textures_);
 				}
 				return score;
 			}
@@ -348,6 +380,8 @@ float ECE_Centipede::checkCollision(sf::FloatRect ship, std::list<ECE_LaserBlast
 	return score;
 }
 
+// Gets size of segments list
+// returns size of segments list
 size_t ECE_Centipede::size()
 {
 	return segments_.size();

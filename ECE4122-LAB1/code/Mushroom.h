@@ -13,9 +13,11 @@ This is the header for the Mushroom class and its related generation functon.
 #include "GameUtils.h"
 #include <SFML/Graphics.hpp>
 
+// The Mushroom class is just a sprite that can change texure if "damaged"
 class Mushroom : public sf::Sprite
 {
 private:
+	// Texture to be set when damaged
 	sf::Texture* textureDamaged_;
 
 public:
@@ -26,4 +28,5 @@ public:
 	bool damaged;
 };
 
+// Generates n mushrooms on a grid
 void generateMushrooms(size_t n, std::list<Mushroom>& mushrooms, Grid grid, sf::Texture& texture, sf::Texture& textureDamaged);

@@ -35,25 +35,28 @@ void Starship::setRange(sf::Vector2f minRange, sf::Vector2f maxRange)
 {
 	minRange_ = minRange;
 	maxRange_ = maxRange;
+	return;
 }
 
 // Allows starship to move left
 void Starship::moveLeft()
 {
 	movingLeft_ = true;
-
+	return;
 }
 
 // Allows starship to move right
 void Starship::moveRight()
 {
 	movingRight_ = true;
+	return;
 }
 
 // Allows starship to move up
 void Starship::moveUp()
 {
 	movingUp_ = true;
+	return;
 
 }
 
@@ -61,12 +64,14 @@ void Starship::moveUp()
 void Starship::moveDown()
 {
 	movingDown_ = true;
+	return;
 }
 
 // Stops starship from moving left
 void Starship::stopLeft()
 {
 	movingLeft_ = false;
+	return;
 
 }
 
@@ -74,12 +79,14 @@ void Starship::stopLeft()
 void Starship::stopRight()
 {
 	movingRight_ = false;
+	return;
 }
 
 // Stops starship from moving up
 void Starship::stopUp()
 {
 	movingUp_ = false;
+	return;
 
 }
 
@@ -87,6 +94,7 @@ void Starship::stopUp()
 void Starship::stopDown()
 {
 	movingDown_ = false;
+	return;
 }
 
 
@@ -112,4 +120,5 @@ void Starship::update(sf::Time dt)
 	}
 
 	setPosition(coerceBounds(nextPos, minRange_, maxRange_));
+	return;
 }
