@@ -1,3 +1,12 @@
+/*
+Author: Matthew Luyten
+Class: ECE4122
+Last Date Modified: 9/30/2024
+
+Description:
+This file implements the Spider class.
+*/
+
 #include "Spider.h"
 #include <iostream>
 
@@ -104,4 +113,19 @@ void Spider::reset(float timeout)
     xDir_ = 1;
     time_ = 0;
     setPosition(initialPos_);
+}
+
+void Spider::eatMushrooms(std::list<Mushroom>& mushrooms)
+{
+	for (auto mushroom = mushrooms.begin(); mushroom != mushrooms.end(); ) 
+	{
+		if (mushroom->getGlobalBounds().intersects(getGlobalBounds()))
+		{
+			mushroom = mushrooms.erase(mushroom);
+			break;
+		}
+		else {
+			++mushroom;
+		}
+	}
 }

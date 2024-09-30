@@ -1,6 +1,16 @@
+/*
+Author: Matthew Luyten
+Class: ECE4122
+Last Date Modified: 9/30/2024
+
+Description:
+This implements the Starship class (derrived from the Bat class from Pong).
+*/
 #include "Starship.h"
 
-// This the constructor and it is called when we create an object
+// Constructor
+// (startX, startY) - Starting position for starship
+// texture - Texture to load into sprite
 Starship::Starship(float startX, float startY, sf::Texture& texture)
 {
 	setTexture(texture);
@@ -8,6 +18,9 @@ Starship::Starship(float startX, float startY, sf::Texture& texture)
 	setPosition(startX, startY);
 }
 
+// Constructor
+// start - Vector of starting position for starship
+// texture - Texture to load into sprite
 Starship::Starship(sf::Vector2f start, sf::Texture& texture)
 {
 	setTexture(texture);
@@ -15,56 +28,70 @@ Starship::Starship(sf::Vector2f start, sf::Texture& texture)
 	setPosition(start);
 }
 
+// Sets the range for which the starship can move around.
+// minRange - Minimum x and y where starship can be located
+// maxRange - Maximum x and y where starship can be located
 void Starship::setRange(sf::Vector2f minRange, sf::Vector2f maxRange)
 {
 	minRange_ = minRange;
 	maxRange_ = maxRange;
 }
 
+// Allows starship to move left
 void Starship::moveLeft()
 {
 	movingLeft_ = true;
 
 }
 
+// Allows starship to move right
 void Starship::moveRight()
 {
 	movingRight_ = true;
 }
 
+// Allows starship to move up
 void Starship::moveUp()
 {
 	movingUp_ = true;
 
 }
 
+// Allows starship to move down
 void Starship::moveDown()
 {
 	movingDown_ = true;
 }
 
+// Stops starship from moving left
 void Starship::stopLeft()
 {
 	movingLeft_ = false;
 
 }
 
+// Stops starship from moving right
 void Starship::stopRight()
 {
 	movingRight_ = false;
 }
 
+// Stops starship from moving up
 void Starship::stopUp()
 {
 	movingUp_ = false;
 
 }
 
+// Stops starship from moving down
 void Starship::stopDown()
 {
 	movingDown_ = false;
 }
 
+
+// Updates starship's position based on speed, direction, and time since last update
+// dt - change in time from last update
 void Starship::update(sf::Time dt)
 {
 	sf::Vector2f nextPos = getPosition();

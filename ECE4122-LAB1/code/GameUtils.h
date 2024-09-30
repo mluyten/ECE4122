@@ -1,3 +1,12 @@
+/*
+Author: Matthew Luyten
+Class: ECE4122
+Last Date Modified: 9/30/2024
+
+Description:
+This is the header for the Grid struct and the other utility functions that didn't derserve their own files.
+*/
+
 #pragma once
 #include "cstddef"
 #include <cmath>

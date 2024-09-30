@@ -1,3 +1,12 @@
+/*
+Author: Matthew Luyten
+Class: ECE4122
+Last Date Modified: 9/30/2024
+
+Description:
+This implements Grid and some utilities that did not warrant their own files.
+*/
+
 #include "GameUtils.h"
 
 Grid::Grid(size_t s, size_t width, size_t height)

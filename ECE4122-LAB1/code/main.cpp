@@ -1,13 +1,17 @@
-// Centipede.cpp : Defines the entry point for the console application.
-//
+/*
+Author: Matthew Luyten
+Class: ECE4122
+Last Date Modified: 9/30/2024
+
+Description:
+This is the main processing loop for my centipede game. All gameplay and graphics handling happens here.
+This is derrived from the Pong game example.
+*/
 
 // TODO:
-// 2. CMAKE
-// 3. Odd Race Case
-// 4. Pace-ICE Compile
-// 5. Comments
-// 6. Odd race case
-// 7. Enter from top
+// 1. There is a case where the centipede siezes up and the rear segments get blasted into oblivion. I do not have time to fix this bug.
+// 2. Have centipede enter from the top. The centipede enters from the top of the screen, but it does not slink down like the centipede
+//	  from the original atari game. I dont have time for this.
 
 #include "Mushroom.h"
 #include "Starship.h"
@@ -20,129 +24,23 @@
 #include <cstdlib>
 #include <iostream>
 #include <list>
-#include <random>
 #include <vector>
 #include <map>
 
 #include <SFML/Graphics.hpp>
 
-using namespace sf;
-
-void generateMushrooms(size_t n, std::list<Mushroom>& mushrooms, Grid grid, sf::Texture& texture, sf::Texture& textureDamaged)
-{
-	std::random_device rd;  // a seed source for the random number engine
-    std::mt19937 gen(rd()); // mersenne_twister_engine seeded with rd()
-	std::uniform_int_distribution<> distrib(0, grid.rows*grid.cols-1);
-	std::vector<bool> mushMap (grid.rows*grid.cols, false);
-	float maxTextureDim = float(texture.getSize().x > texture.getSize().y ? texture.getSize().x : texture.getSize().y);
-	float scaleFactor = grid.size / maxTextureDim;
-	for (size_t i = 0; i < n; i++) 
-	{
-		size_t pos = distrib(gen);
-		while (mushMap[pos]) 
-		{
-			pos = distrib(gen);
-		}
-		mushMap[pos] = 1;
-		float posY = (floor(pos / grid.cols)) * grid.size + grid.yOffset;
-		float posX = (pos % (int) grid.cols) * grid.size + grid.xOffset;
-		mushrooms.emplace_back(posX, posY, texture, textureDamaged);
-		mushrooms.back().setScale(scaleFactor, scaleFactor);
-	}
-	return;
-}
-
-void eatMushrooms(Spider spider, std::list<Mushroom>& mushrooms)
-{
-	for (auto mushroom = mushrooms.begin(); mushroom != mushrooms.end(); ) 
-	{
-		if (mushroom->getGlobalBounds().intersects(spider.getGlobalBounds()))
-		{
-			mushroom = mushrooms.erase(mushroom);
-			break;
-		}
-		else {
-			++mushroom;
-		}
-	}
-}
-
-void blastMushrooms(int& score, std::list<ECE_LaserBlast>& blasts, std::list<Mushroom>& mushrooms, sf::Time dt)
-{
-	for (auto blast = blasts.begin(); blast != blasts.end(); ) 
-	{
-		bool hit = false;
-		for (auto mushroom = mushrooms.begin(); mushroom != mushrooms.end(); ) 
-		{
-			if (mushroom->getGlobalBounds().intersects(blast->getGlobalBounds()))
-			{
-				if (mushroom->damaged)
-				{
-					mushroom = mushrooms.erase(mushroom);
-					score += 4;
-				}
-				else
-				{
-					mushroom->damage();
-				}
-				blast = blasts.erase(blast);
-				hit = true;
-				
-				break;
-			}
-			else {
-				++mushroom;
-			}
-		}
-		if (!hit)
-		{
-			++blast;
-		}
-	}
-}
-
-void blastSpider(int& score, std::list<ECE_LaserBlast>& blasts, Spider& spider, sf::Time dt)
-{
-	for (auto blast = blasts.begin(); blast != blasts.end(); ) 
-	{	
-		if (blast->getGlobalBounds().intersects(spider.getGlobalBounds())) 
-		{
-			std::random_device rd;  // a seed source for the random number engine
-			std::mt19937 gen(rd()); // mersenne_twister_engine seeded with rd()
-			std::uniform_int_distribution<> distrib(3, 9);
-			score += 100 * distrib(gen);
-			blast = blasts.erase(blast);
-			spider.reset(4);
-		}
-		else
-		{
-			++blast;
-		}
-	}
-}
-
-void cullBlasts(std::list<ECE_LaserBlast>& blasts)
-{
-	while(true) 
-	{
-		if (blasts.size() > 0 && blasts.front().getPosition().y < 0) 
-		{
-			blasts.pop_front();
-		}
-		else
-			break;
-	}
-}
-
 int main()
 {
 	// Create a video mode object
-	VideoMode vm(1920, 1200);
+	sf::VideoMode vm(1280, 720);
 
 	// Create and open a window for the game
+	sf::RenderWindow window(vm, "Centipede", sf::Style::Titlebar);
 
-	RenderWindow window(vm, "Centipede", Style::Fullscreen);
+	// Display splash screen and do not start until enter is pressed
 	bool titleScreen = true;
+
+	// Load all textures into a map
 	std::map<std::string, sf::Texture> textures;
 	std::vector<std::string> assets = {"TitleScreen.png", "Spider.png", "Mushroom0.png", "Mushroom1.png", "StarShip.png", "Laser.png", "CentipedeHead.png", "CentipedeBody.png"};
 	for(auto& asset : assets)
@@ -154,73 +52,92 @@ int main()
 		}
 	}
 
-	float scaleFactor = 1.5;
+	// Set scale factor for sprites. 1.1 works well
+	float scaleFactor = 1.1;
 	// Create a sprite
 	sf::Sprite titleScreenSprite;
 	// Attach the texture to the sprite
 	titleScreenSprite.setTexture(textures["TitleScreen.png"]);
 	// Set the spriteBackground to cover the screen
 	titleScreenSprite.setPosition(0, 0);
+	// Scale splash screen to window size
 	titleScreenSprite.setScale(
     vm.width / titleScreenSprite.getLocalBounds().width, 
     vm.height / titleScreenSprite.getLocalBounds().height);
 
+	// Set up game grid according to parameters window and scale parameters
 	Grid gameGrid(27 * scaleFactor, vm.width, vm.height);
 			
 
 	// Create a Starship
 	Starship starship(vm.height / 2, vm.width - 20, textures["StarShip.png"]);
 	starship.setScale(scaleFactor, scaleFactor);
-	starship.setRange(Vector2f(0, vm.height-5.5*gameGrid.size), Vector2f(vm.width, vm.height-0.5*gameGrid.size));
+	starship.setRange(sf::Vector2f(0, vm.height-5*gameGrid.size), sf::Vector2f(vm.width, vm.height-0.5*gameGrid.size));
 
+	// Create blasts list
 	std::list<ECE_LaserBlast> blasts;
 	bool spacePressed = false;
 
+	// Create mushrooms and place them in smaller 
 	Grid mushroomGrid = gameGrid;
 	mushroomGrid.rows -= 10;
 	mushroomGrid.yOffset += 5 * mushroomGrid.size;
 	std::list<Mushroom> mushrooms;
 
+	// Creeate list of centipedes and add our first one at the top of the play area.
 	std::list<ECE_Centipede> centipedes;
-	centipedes.emplace_back(11, gameGrid.grid2Coord(24, 11), gameGrid, textures);
+	centipedes.emplace_back(11, gameGrid.grid2Coord(4, 1), gameGrid, textures);
 
+	// Create lives vector. This just displays the sprites and keeps track of the number of lives remaining
 	std::list<Starship> lives;
 
+	// Create the spider and place it just out of view
 	sf::Vector2f spiderStart(-1.0 * gameGrid.size, vm.height - 5 * gameGrid.size);
 	Spider spider(spiderStart, textures["Spider.png"]);
-	spider.setRange(Vector2f(-1.0 * gameGrid.size, vm.height - 10 * gameGrid.size), Vector2f(vm.width + gameGrid.size, vm.height - 0.5 * gameGrid.size));
+	spider.setRange(sf::Vector2f(-1.0 * gameGrid.size, vm.height - 10 * gameGrid.size), sf::Vector2f(vm.width + gameGrid.size, vm.height - 0.5 * gameGrid.size));
 
-	// Create a Text object called HUD
-	Text hud;
-	Font font;
+	// Create a Text object called HUD - this displays the score
+	sf::Text hud;
+	sf::Font font;
 	font.loadFromFile("fonts/DS-DIGI.ttf");
 	hud.setFont(font);
-	hud.setCharacterSize(75);
-	hud.setFillColor(Color::White);
-	hud.setPosition(1920/2, 20);
+	hud.setCharacterSize(55);
+	hud.setFillColor(sf::Color::White);
+	hud.setPosition(vm.width/2, 20);
 	int score = 0;
 
 	// Here is our clock for timing everything
-	Clock clock;
+	sf::Clock clock;
 
+	// Game loop
 	while (window.isOpen())
 	{
+		// Display splash screen and do not start until enter is pressed
 		if (titleScreen) 
 		{
-			if (Keyboard::isKeyPressed(Keyboard::Enter)) 
+			// Check if enter pressed to start game
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Enter)) 
 			{
+				// Toggle flag and generate 30 mushrooms in game area
 				titleScreen = false;
 				generateMushrooms(30, mushrooms, mushroomGrid, textures["Mushroom0.png"], textures["Mushroom1.png"]);
 
+				// Place three "starships" in lives vector
 				for (int i = 0; i < 3; i++)
 				{
 					lives.emplace_back(vm.width*(0.75+0.025*i), vm.height*0.06, textures["StarShip.png"]);
 					lives.back().setScale(scaleFactor, scaleFactor);
 				}
 			}
+			// Handle the player quitting
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+			{
+				window.close();
+			}
+
 			clock.restart();
 			window.clear();
-			window.draw(titleScreenSprite);
+			window.draw(titleScreenSprite); // Draw splash screen
 			window.display();
 			continue;
 		}
@@ -232,22 +149,22 @@ int main()
 		*********************************************************************
 		*/
 
-		Event event;
+		sf::Event event;
 		while (window.pollEvent(event))
 		{
-			if (event.type == Event::Closed)
+			if (event.type == sf::Event::Closed)
 				// Quit the game when the window is closed
 				window.close();
 
 		}
 		// Handle the player quitting
-		if (Keyboard::isKeyPressed(Keyboard::Escape))
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
 		{
 			window.close();
 		}
 		
 		// Handle the player quitting
-		if (Keyboard::isKeyPressed(Keyboard::Space))
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
 		{
 			if (!spacePressed) {
 				blasts.emplace_back(starship.getPosition(), textures["Laser.png"]);
@@ -259,23 +176,23 @@ int main()
 			spacePressed = false;
 		}
 
-		// Handle the pressing and releasing of the arrow keys
-		if (Keyboard::isKeyPressed(Keyboard::Left))
+		// Handle the pressing and releasing of the arrow keys to move starship
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
 			starship.moveLeft();
 		else
 			starship.stopLeft();
 
-		if (Keyboard::isKeyPressed(Keyboard::Right))
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
 			starship.moveRight();
 		else
 			starship.stopRight();
 
-		if (Keyboard::isKeyPressed(Keyboard::Up))
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
 			starship.moveUp();
 		else
 			starship.stopUp();
 
-		if (Keyboard::isKeyPressed(Keyboard::Down))
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
 			starship.moveDown();
 		else
 			starship.stopDown();
@@ -290,15 +207,17 @@ int main()
 
 		bool dead = false;
 
+		// Check collisions with mushrooms, blasts, and the starship for all centipedes
 		for (auto centipede = centipedes.begin(); centipede != centipedes.end(); )
 		{
+			// Returns the score accumulated if blast hits centipede. If -1, the centipede hit the starship and a life is lost
 			float points = centipede->checkCollision(starship.getGlobalBounds(), blasts, mushrooms, centipedes);
 			dead |= (points == -1);
-			if (dead)
-				break;
+			if (dead) 
+				break; // We're hit, exit the loop
 			else
 				score += points;
-			if (centipede->size() > 0)
+			if (centipede->size() > 0) // Remove any empty or "dead" centipedes
 			{
 				centipede->update(dt);
 				++centipede;
@@ -309,20 +228,26 @@ int main()
 			
 		}
 
+		// Restart game if every centipede is dead
 		titleScreen = (centipedes.size() == 0);
+		// Lose a life if spider hits starship
 		dead |= (spider.getGlobalBounds().intersects(starship.getGlobalBounds()));
 		
 		if (dead | titleScreen)
 		{
+			// If dead or restarting, we need ot clear centipedes, blasts, and remove a life
 			centipedes.clear();
 			blasts.clear();
 			lives.pop_back();
 			starship.setPosition(vm.height / 2, vm.width - 20);
 			spider.reset();
 			centipedes.emplace_back(11, gameGrid.grid2Coord(4, 1), gameGrid, textures);
+
+			// If we last life is gone, restart game
 			titleScreen |= (lives.empty());
 			if (titleScreen)
 			{
+				// Reset game
 				lives.clear();
 				mushrooms.clear();
 				score = 0;
@@ -331,15 +256,18 @@ int main()
 			continue;
 		}
 
-		
-		eatMushrooms(spider, mushrooms);
+		// Removes mushrooms intersecting the spider
+		spider.eatMushrooms(mushrooms);
 
+		// Checks blast/mushroom collisions and changes mushrooms as needed. Updates score
 		blastMushrooms(score, blasts, mushrooms, dt);
 
+		// Checks if spider is hit and "kills" is if so. Updates score
 		blastSpider(score, blasts, spider, dt);
 		
 		cullBlasts(blasts); // Remove blasts that are out of frame
 
+		// Update our moving sprites
 		spider.update(dt);
 		starship.update(dt);
 		for (auto& blast : blasts) blast.update(dt);
@@ -350,7 +278,7 @@ int main()
 		hud.setString(ss.str()); 
 
 		/*
-		Draw the Starship, the ECE_LaserBlast and the HUD
+		Draw the all of our sprites + the hud
 		*********************************************************************
 		*********************************************************************
 		*********************************************************************

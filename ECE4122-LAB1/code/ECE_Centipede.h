@@ -1,3 +1,13 @@
+/*
+Author: Matthew Luyten
+Class: ECE4122
+Last Date Modified: 9/30/2024
+
+Description:
+	This is the header for the ECE_Centipede class and Segment class. Segment should probably be in a private namespace or part of
+	ECE_Centipede's private scope. Oh bother.
+*/
+
 #pragma once
 #include <list>
 #include <iterator>
@@ -21,7 +31,7 @@ public:
 
 private:
 	bool descending_ = true;
-	float speed_ = 400.0f;
+	float speed_ = 300.0f;
 	Grid gameGrid_;
 	
 	sf::Vector2f ignore_; // In case we have to clip through 

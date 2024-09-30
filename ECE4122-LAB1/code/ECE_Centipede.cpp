@@ -1,3 +1,13 @@
+/*
+Author: Matthew Luyten
+Class: ECE4122
+Last Date Modified: 9/30/2024
+
+Description:
+This implements the Centipede class. This was by-far the most painful part and caused me emotional pain for days on end.
+It is not complete of bug-free (haha), but the time for fixing it has passed.
+*/
+
 #include "ECE_Centipede.h"
 
 Segment::Segment(float startX, float startY, Grid gameGrid, sf::Texture& texture, sf::Vector2f dir)

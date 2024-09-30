@@ -1,17 +1,27 @@
+/*
+Author: Matthew Luyten
+Class: ECE4122
+Last Date Modified: 9/30/2024
+
+Description:
+This is the header for the Starship class (derrived from the Bat class from Pong)
+*/
 #pragma once
 #include "GameUtils.h"
 #include <SFML/Graphics.hpp>
 
+// This class is the sprite that the player controls. It moves around the screen according to user inputs.
 class Starship : public sf::Sprite
 {
 private:
-	float speed_ = 750.0f;
+	float speed_ = 550.0f;
 
 	bool movingRight_ = false;
 	bool movingLeft_ = false;
 	bool movingUp_ = false;
 	bool movingDown_ = false;
 
+	// X and Y ranges for which the ship can exist
 	sf::Vector2f minRange_;
 	sf::Vector2f maxRange_;
 

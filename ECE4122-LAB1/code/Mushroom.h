@@ -1,6 +1,16 @@
+/*
+Author: Matthew Luyten
+Class: ECE4122
+Last Date Modified: 9/30/2024
+
+Description:
+This is the header for the Mushroom class and its related generation functon.
+*/
+
 #pragma once
+#include <random>
+#include <list>
 #include "GameUtils.h"
-#include "ECE_LaserBlast.h"
 #include <SFML/Graphics.hpp>
 
 class Mushroom : public sf::Sprite
@@ -15,3 +25,5 @@ public:
 	void damage();
 	bool damaged;
 };
+
+void generateMushrooms(size_t n, std::list<Mushroom>& mushrooms, Grid grid, sf::Texture& texture, sf::Texture& textureDamaged);
