@@ -77,13 +77,8 @@ int main(int argc, char* argv[]) {
 		sf::Time dt = clock.restart(); 
 
 		if (time > 0.05) {
-			for (size_t r = 0; r < rows; r++) {
-				for (size_t c = 0; c < cols; c++) {
-					age(r, c, thisGeneration, lastGeneration);
-				}
-			}
+			nextGenerationSeq(thisGeneration, lastGeneration);
 			time = 0;
-			lastGeneration = thisGeneration;
 		}
 		else {
 			time += dt.asSeconds();

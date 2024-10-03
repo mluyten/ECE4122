@@ -9,13 +9,42 @@ void age(size_t r, size_t c, Matrix<int>& thisGeneration, Matrix<int>& lastGener
                 sum += lastGeneration[r+i][c+j];
         }
     }
-    
+
     if (lastGeneration[r][c] && (sum < 2 || sum > 3))
         thisGeneration[r][c] = 0;
     else if (!lastGeneration[r][c] && sum == 3)
         thisGeneration[r][c] = 1;
     else
         thisGeneration[r][c] = lastGeneration[r][c];
+    return;
+}
+
+void nextGenerationSeq(Matrix<int>& thisGeneration, Matrix<int>& lastGeneration) {
+    for (size_t i = 0; i < thisGeneration.rows() * thisGeneration.cols(); i++) {
+        age(i / thisGeneration.cols(), i % thisGeneration.cols(), thisGeneration, lastGeneration);
+    }
+    lastGeneration = thisGeneration;
+    return;
+}
+
+void nextGenerationThrd(Matrix<int>& thisGeneration, Matrix<int>& lastGeneration) {
+    for (size_t r = 0; r < thisGeneration.rows(); r++) {
+        for (size_t c = 0; c < thisGeneration.cols(); c++) {
+            age(r, c, thisGeneration, lastGeneration);
+        }
+    }
+    lastGeneration = thisGeneration;
+    return;
+}
+
+void nextGenerationOMP(Matrix<int>& thisGeneration, Matrix<int>& lastGeneration) {
+    for (size_t r = 0; r < thisGeneration.rows(); r++) {
+        for (size_t c = 0; c < thisGeneration.cols(); c++) {
+            age(r, c, thisGeneration, lastGeneration);
+        }
+    }
+    lastGeneration = thisGeneration;
+    return;
 }
 
 std::map<std::string, size_t> parseArgs(int argc, char* argv[])
