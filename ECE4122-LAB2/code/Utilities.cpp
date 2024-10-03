@@ -1,4 +1,22 @@
 #include "Utilities.h"
+#include <iostream>
+
+void age(size_t r, size_t c, Matrix<int>& thisGeneration, Matrix<int>& lastGeneration) {
+    int sum = 0;
+    for (int i(r > 0 ? -1 : 0); i <= int(r < thisGeneration.rows()-1 ? 1 : 0); i++) {
+        for (int j(c > 0 ? -1 : 0); j <= int(c < thisGeneration.cols()-1 ? 1 : 0); j++) {
+            if (j != 0 || i != 0)
+                sum += lastGeneration[r+i][c+j];
+        }
+    }
+    
+    if (lastGeneration[r][c] && (sum < 2 || sum > 3))
+        thisGeneration[r][c] = 0;
+    else if (!lastGeneration[r][c] && sum == 3)
+        thisGeneration[r][c] = 1;
+    else
+        thisGeneration[r][c] = lastGeneration[r][c];
+}
 
 std::map<std::string, size_t> parseArgs(int argc, char* argv[])
 {
