@@ -19,32 +19,37 @@ void age(size_t r, size_t c, Matrix<int>& thisGeneration, Matrix<int>& lastGener
     return;
 }
 
-void nextGenerationSeq(Matrix<int>& thisGeneration, Matrix<int>& lastGeneration) {
+int nextGenerationSeq(Matrix<int>& thisGeneration, Matrix<int>& lastGeneration) {
+    auto tick = std::chrono::high_resolution_clock::now();
+    for (size_t i = 0; i < thisGeneration.rows() * thisGeneration.cols(); i++) {
+        age(i / thisGeneration.cols(), i % thisGeneration.cols(), thisGeneration, lastGeneration);
+    }
+    auto tock = std::chrono::high_resolution_clock::now();
+    lastGeneration = thisGeneration;
+    
+    return std::chrono::duration_cast<std::chrono::microseconds>(tock - tick).count();
+}
+
+int nextGenerationThrd(Matrix<int>& thisGeneration, Matrix<int>& lastGeneration, size_t nThreads) {
+    auto tick = std::chrono::high_resolution_clock::now();
     for (size_t i = 0; i < thisGeneration.rows() * thisGeneration.cols(); i++) {
         age(i / thisGeneration.cols(), i % thisGeneration.cols(), thisGeneration, lastGeneration);
     }
     lastGeneration = thisGeneration;
-    return;
+    auto tock = std::chrono::high_resolution_clock::now();
+    return std::chrono::duration_cast<std::chrono::microseconds>(tock - tick).count();
 }
 
-void nextGenerationThrd(Matrix<int>& thisGeneration, Matrix<int>& lastGeneration) {
-    for (size_t r = 0; r < thisGeneration.rows(); r++) {
-        for (size_t c = 0; c < thisGeneration.cols(); c++) {
-            age(r, c, thisGeneration, lastGeneration);
-        }
+int nextGenerationOMP(Matrix<int>& thisGeneration, Matrix<int>& lastGeneration, size_t nThreads) {
+    auto tick = std::chrono::high_resolution_clock::now();
+    #pragma openmp parallel for num_threads(nThreads) nowait
+    for (size_t i = 0; i < thisGeneration.rows() * thisGeneration.cols(); i++) {
+        age(i / thisGeneration.cols(), i % thisGeneration.cols(), thisGeneration, lastGeneration);
     }
+    auto tock = std::chrono::high_resolution_clock::now();
     lastGeneration = thisGeneration;
-    return;
-}
-
-void nextGenerationOMP(Matrix<int>& thisGeneration, Matrix<int>& lastGeneration) {
-    for (size_t r = 0; r < thisGeneration.rows(); r++) {
-        for (size_t c = 0; c < thisGeneration.cols(); c++) {
-            age(r, c, thisGeneration, lastGeneration);
-        }
-    }
-    lastGeneration = thisGeneration;
-    return;
+    
+    return std::chrono::duration_cast<std::chrono::microseconds>(tock - tick).count();
 }
 
 std::map<std::string, size_t> parseArgs(int argc, char* argv[])
@@ -81,7 +86,7 @@ std::map<std::string, size_t> parseArgs(int argc, char* argv[])
 				args["error"] = 1;
             }
         }
-		if (arg == "-c") {
+		else if (arg == "-c") {
             // Ensure there is a value following -x
             if (i + 1 < argc) {
                 try {

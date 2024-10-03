@@ -11,6 +11,7 @@ Description:
 #include <map>
 #include <vector>
 #include <iostream>
+#include <random>
 #include "Utilities.h"
 #include "Matrix.h"
 #include <SFML/Graphics.hpp>
@@ -26,23 +27,31 @@ int main(int argc, char* argv[]) {
 	Matrix<int> thisGeneration(rows, cols);
 	Matrix<int> lastGeneration(rows, cols);
 
+	std::random_device rd;  // a seed source for the random number engine
+    std::mt19937 gen(rd()); // mersenne_twister_engine seeded with rd()
+	std::uniform_int_distribution<> distrib(0, 1);
+
 	std::vector<std::vector<sf::RectangleShape>> cells(rows, std::vector<sf::RectangleShape>(cols));
 	for (size_t r = 0; r < rows; r++) {
 		for (size_t c = 0; c < cols; c++) {
 			cells[r][c].setSize(sf::Vector2f(args["cellSize"], args["cellSize"]));
 			cells[r][c].setFillColor(sf::Color(255,255,255,255));
 			cells[r][c].setPosition(c*args["cellSize"], r*args["cellSize"]);
+			lastGeneration[r][c] = distrib(gen);
 		}
 	}
 
 	// Spawn a glider
-	lastGeneration[0][1] = 1;
+	
+	/*lastGeneration[0][1] = 1;
 	lastGeneration[1][2] = 1;
 	lastGeneration[2][0] = 1;
 	lastGeneration[2][1] = 1;
-	lastGeneration[2][2] = 1;
+	lastGeneration[2][2] = 1;*/
 
 	float time = 0;
+	size_t generations = 0;
+	int procTime = 0;
 
 	// Create a video mode object
 	sf::VideoMode vm(args["windowWidth"], args["windowHeight"]);
@@ -53,7 +62,7 @@ int main(int argc, char* argv[]) {
 	// Here is our clock for timing everything
 	sf::Clock clock;
 
-	// Game loop
+	// Game loop 
 	while (window.isOpen())
 	{
 		// Handle Input
@@ -76,13 +85,23 @@ int main(int argc, char* argv[]) {
 
 		sf::Time dt = clock.restart(); 
 
-		if (time > 0.05) {
-			nextGenerationSeq(thisGeneration, lastGeneration);
+		//if (time > 0.05) {
+			if (args["threadingMode"] == 0) {
+				procTime += nextGenerationSeq(thisGeneration, lastGeneration);
+				}
+			else
+				procTime += nextGenerationOMP(thisGeneration, lastGeneration, args["nThreads"]);
+			
+			generations++;
 			time = 0;
-		}
-		else {
-			time += dt.asSeconds();
-		}
+			if (generations % 100 == 0) {
+				std::cout << "100 generations took " << procTime << " microseconds with " << args["threadingMode"] << std::endl;
+				procTime = 0;
+			}
+		//}
+		//else {
+			//time += dt.asSeconds();
+		//}
 		
 		// Draw automata
 		window.clear();
