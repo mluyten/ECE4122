@@ -3,6 +3,9 @@
 #include <string>
 #include <iostream>
 #include <chrono>
+#include <list>
+#include <thread>
+#include <omp.h>
 #include "Matrix.h"
 
 void age(size_t r, size_t c, Matrix<int>& thisGeneration, Matrix<int>& lastGeneration);

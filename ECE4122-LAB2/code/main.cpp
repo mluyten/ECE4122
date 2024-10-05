@@ -88,9 +88,13 @@ int main(int argc, char* argv[]) {
 		//if (time > 0.05) {
 			if (args["threadingMode"] == 0) {
 				procTime += nextGenerationSeq(thisGeneration, lastGeneration);
-				}
-			else
+			}
+			else if (args["threadingMode"] == 1) {
+				procTime += nextGenerationThrd(thisGeneration, lastGeneration, args["nThreads"]);
+			}
+			else {
 				procTime += nextGenerationOMP(thisGeneration, lastGeneration, args["nThreads"]);
+			}
 			
 			generations++;
 			time = 0;

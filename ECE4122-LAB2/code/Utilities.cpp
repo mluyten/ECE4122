@@ -20,20 +20,51 @@ void age(size_t r, size_t c, Matrix<int>& thisGeneration, Matrix<int>& lastGener
 }
 
 int nextGenerationSeq(Matrix<int>& thisGeneration, Matrix<int>& lastGeneration) {
-    auto tick = std::chrono::high_resolution_clock::now();
-    for (size_t i = 0; i < thisGeneration.rows() * thisGeneration.cols(); i++) {
-        age(i / thisGeneration.cols(), i % thisGeneration.cols(), thisGeneration, lastGeneration);
+    double tick = omp_get_wtime();
+    for (size_t r = 0; r < thisGeneration.rows(); r++) {
+        for (size_t c = 0; c < thisGeneration.cols(); c++) {
+            int sum = 0;
+            for (int i(r > 0 ? -1 : 0); i <= int(r < thisGeneration.rows()-1 ? 1 : 0); i++) {
+                for (int j(c > 0 ? -1 : 0); j <= int(c < thisGeneration.cols()-1 ? 1 : 0); j++) {
+                    if (j != 0 || i != 0)
+                        sum += lastGeneration[r+i][c+j];
+                }
+            }
+
+            if (lastGeneration[r][c] && (sum < 2 || sum > 3))
+                thisGeneration[r][c] = 0;
+            else if (!lastGeneration[r][c] && sum == 3)
+                thisGeneration[r][c] = 1;
+            else
+                thisGeneration[r][c] = lastGeneration[r][c];
+        }
     }
-    auto tock = std::chrono::high_resolution_clock::now();
     lastGeneration = thisGeneration;
-    
-    return std::chrono::duration_cast<std::chrono::microseconds>(tock - tick).count();
+    double tock = omp_get_wtime();
+    return 1000000*(tock-tick);
 }
 
 int nextGenerationThrd(Matrix<int>& thisGeneration, Matrix<int>& lastGeneration, size_t nThreads) {
     auto tick = std::chrono::high_resolution_clock::now();
-    for (size_t i = 0; i < thisGeneration.rows() * thisGeneration.cols(); i++) {
-        age(i / thisGeneration.cols(), i % thisGeneration.cols(), thisGeneration, lastGeneration);
+    std::list<std::thread> threads;
+    size_t i = 0;
+    while (true) {
+        if (threads.size() < nThreads) {
+            threads.push_back(std::thread(age, i / thisGeneration.cols(), i % thisGeneration.cols(), std::ref(thisGeneration), std::ref(lastGeneration)));
+            i++;
+        }
+        
+        for (auto it = threads.begin(); it != threads.end(); ) {
+            if (it->joinable()) {
+                it->join();
+                it = threads.erase(it);
+            }
+            else
+                ++it;
+        }
+
+        if (i == thisGeneration.rows() * thisGeneration.cols() && threads.size() == 0)
+            break;
     }
     lastGeneration = thisGeneration;
     auto tock = std::chrono::high_resolution_clock::now();
@@ -41,15 +72,16 @@ int nextGenerationThrd(Matrix<int>& thisGeneration, Matrix<int>& lastGeneration,
 }
 
 int nextGenerationOMP(Matrix<int>& thisGeneration, Matrix<int>& lastGeneration, size_t nThreads) {
-    auto tick = std::chrono::high_resolution_clock::now();
-    #pragma openmp parallel for num_threads(nThreads) nowait
-    for (size_t i = 0; i < thisGeneration.rows() * thisGeneration.cols(); i++) {
-        age(i / thisGeneration.cols(), i % thisGeneration.cols(), thisGeneration, lastGeneration);
+    double tick = omp_get_wtime();
+    #pragma omp parallel for collapse(2) num_threads(nThreads)
+    for (size_t r = 0; r < thisGeneration.rows(); r++) {
+        for (size_t c = 0; c < thisGeneration.cols(); c++) {
+            age(r, c, thisGeneration, lastGeneration);
+        }
     }
-    auto tock = std::chrono::high_resolution_clock::now();
     lastGeneration = thisGeneration;
-    
-    return std::chrono::duration_cast<std::chrono::microseconds>(tock - tick).count();
+    double tock = omp_get_wtime();
+    return 1000000*(tock-tick);
 }
 
 std::map<std::string, size_t> parseArgs(int argc, char* argv[])
