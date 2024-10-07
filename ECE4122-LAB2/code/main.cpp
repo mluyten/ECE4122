@@ -1,7 +1,7 @@
 /*
 Author: Matthew Luyten
 Class: ECE4122
-Last Date Modified:
+Last Date Modified: 10/7/2024
 
 Description:
 
@@ -12,6 +12,7 @@ Description:
 #include <vector>
 #include <iostream>
 #include <random>
+#include "CellularAutomata.h"
 #include "Utilities.h"
 #include "Matrix.h"
 #include <SFML/Graphics.hpp>
@@ -20,6 +21,10 @@ int main(int argc, char* argv[]) {
 	std::map<std::string, size_t> args = parseArgs(argc, argv);
 	if (args["error"] == 1)
 		return 1;
+
+	std::map<size_t, std::string> modes = {{0, "single thread."}, 
+										   {1, std::to_string(args["nThreads"]) + " std::threads."},
+										   {2, std::to_string(args["nThreads"]) + " OMP threads."}};
 
 	const size_t rows = args["windowHeight"] / args["cellSize"];
 	const size_t cols = args["windowWidth"] / args["cellSize"];
@@ -40,16 +45,6 @@ int main(int argc, char* argv[]) {
 			lastGeneration[r][c] = distrib(gen);
 		}
 	}
-
-	// Spawn a glider
-	
-	/*lastGeneration[0][1] = 1;
-	lastGeneration[1][2] = 1;
-	lastGeneration[2][0] = 1;
-	lastGeneration[2][1] = 1;
-	lastGeneration[2][2] = 1;*/
-
-	float time = 0;
 	size_t generations = 0;
 	int procTime = 0;
 
@@ -66,7 +61,6 @@ int main(int argc, char* argv[]) {
 	while (window.isOpen())
 	{
 		// Handle Input
-
 		sf::Event event;
 		while (window.pollEvent(event))
 		{
@@ -81,31 +75,23 @@ int main(int argc, char* argv[]) {
 			window.close();
 		}
 		
-		// Update automata
+		// Update automata based on threading mode
+		if (args["threadingMode"] == 0) {
+			procTime += nextGenerationSeq(thisGeneration, lastGeneration);
+		}
+		else if (args["threadingMode"] == 1) {
+			procTime += nextGenerationThrd(thisGeneration, lastGeneration, args["nThreads"]);
+		}
+		else {
+			procTime += nextGenerationOMP(thisGeneration, lastGeneration, args["nThreads"]);
+		}
+		generations++;
 
-		sf::Time dt = clock.restart(); 
-
-		//if (time > 0.05) {
-			if (args["threadingMode"] == 0) {
-				procTime += nextGenerationSeq(thisGeneration, lastGeneration);
-			}
-			else if (args["threadingMode"] == 1) {
-				procTime += nextGenerationThrd(thisGeneration, lastGeneration, args["nThreads"]);
-			}
-			else {
-				procTime += nextGenerationOMP(thisGeneration, lastGeneration, args["nThreads"]);
-			}
-			
-			generations++;
-			time = 0;
-			if (generations % 100 == 0) {
-				std::cout << "100 generations took " << procTime << " microseconds with " << args["threadingMode"] << std::endl;
-				procTime = 0;
-			}
-		//}
-		//else {
-			//time += dt.asSeconds();
-		//}
+		// Print time took for the last 100 generations
+		if (generations % 100 == 0) {
+			std::cout << "100 generations took " << procTime << " microseconds with " << modes[args["threadingMode"]] << std::endl;
+			procTime = 0;
+		}
 		
 		// Draw automata
 		window.clear();

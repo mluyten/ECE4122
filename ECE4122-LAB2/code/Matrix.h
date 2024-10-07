@@ -1,9 +1,17 @@
+/*
+Author: Matthew Luyten
+Class: ECE4122
+Last Date Modified: 10/7/2024
+
+Description:
+This is the header for the matrix class. This class wraps a 1D std::vector and allows it to be accessed like a 2D matrix.
+This ensures all elements are sequential in memory and access/copy opperations are quick. It's templated, so it will work
+with nearly any type and size.
+*/
+
 #pragma once
 #include <vector>
 
-// This is my fancy templated matrix class
-// Since 2D vectors in C++ are not sequential in memory,
-// I wanted something that was. Thus: Matrix<T>
 template <typename T>
 class Matrix {
 public:
