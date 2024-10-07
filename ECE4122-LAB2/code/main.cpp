@@ -4,7 +4,16 @@ Class: ECE4122
 Last Date Modified: 10/7/2024
 
 Description:
-
+This is the main loop for the GameOfLife cellular automata project.
+Each generation of celular automata is drawn and displayed.
+Every 100 generations, the processing time in us is printed.
+Arguments:
+	-n <number of threads>
+	-c <size of each cell in pixels>
+	-x <window width in pixels>
+	-y <window height in pixels>
+	-t <threading mode>
+		NOTE: Threading modes are SEQ, THRD, or OMP. Any other mode will result in an error
 */
 
 #include <string>
@@ -18,17 +27,22 @@ Description:
 #include <SFML/Graphics.hpp>
 
 int main(int argc, char* argv[]) {
+	// Parse arguments and stick 'em in a map
 	std::map<std::string, size_t> args = parseArgs(argc, argv);
+	// Quit on error
 	if (args["error"] == 1)
 		return 1;
 
+	// Map of modes to printout string
 	std::map<size_t, std::string> modes = {{0, "single thread."}, 
 										   {1, std::to_string(args["nThreads"]) + " std::threads."},
 										   {2, std::to_string(args["nThreads"]) + " OMP threads."}};
 
+	// Get number of rows and cols
 	const size_t rows = args["windowHeight"] / args["cellSize"];
 	const size_t cols = args["windowWidth"] / args["cellSize"];
 
+	// Set up matrices to store cell states
 	Matrix<int> thisGeneration(rows, cols);
 	Matrix<int> lastGeneration(rows, cols);
 
@@ -36,6 +50,7 @@ int main(int argc, char* argv[]) {
     std::mt19937 gen(rd()); // mersenne_twister_engine seeded with rd()
 	std::uniform_int_distribution<> distrib(0, 1);
 
+	// Set up vector of SFML rectangles to display cells and randomly determine cell state
 	std::vector<std::vector<sf::RectangleShape>> cells(rows, std::vector<sf::RectangleShape>(cols));
 	for (size_t r = 0; r < rows; r++) {
 		for (size_t c = 0; c < cols; c++) {
@@ -76,6 +91,7 @@ int main(int argc, char* argv[]) {
 		}
 		
 		// Update automata based on threading mode
+
 		if (args["threadingMode"] == 0) {
 			procTime += nextGenerationSeq(thisGeneration, lastGeneration);
 		}
@@ -93,16 +109,15 @@ int main(int argc, char* argv[]) {
 			procTime = 0;
 		}
 		
-		// Draw automata
+		// Draw window
 		window.clear();
-
+		// Draw every live cell
 		for (size_t r = 0; r < rows; r++) {
 			for (size_t c = 0; c < cols; c++) {
 				if (lastGeneration[r][c] == 1)
 					window.draw(cells[r][c]);
 			}
 		}
-
 		window.display();
 	}
 
