@@ -4,17 +4,26 @@ Class: ECE4122
 Last Date Modified: 10/21/2024
 
 Description:
-
+    This is the implementation of the model class. This class allows us to inititalize, maintain, and draw a single mesh
+    with a few simple functions
 */
 
 #include "Model.h"
 
+// Constructor for Model object
+// modelPath - relative path of .obj file to be loaded
+// texturePath - relative path of .dds texture to be applied to mesh
+// index - index of desired mesh in .obj file (default=0)
+// pos - desired postion of mesh (default=(0,0,0))
+// ang - desired angle of mesh about z axis (default=0)
 Model::Model (std::string modelPath, std::string texturePath, int index,  glm::vec3 pos, float ang) : position(pos), angle(ang) {
+    // Load in the model at the index
     bool res = loadAssImp(modelPath.c_str(), indices, indexed_vertices, indexed_uvs, indexed_normals, index);
 
     // Load the texture
     Texture = loadDDS(texturePath.c_str());
 
+    // Generate and fill in all buffers
     glGenBuffers(1, &vertexbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
     glBufferData(GL_ARRAY_BUFFER, indexed_vertices.size() * sizeof(glm::vec3), &indexed_vertices[0], GL_STATIC_DRAW);
@@ -32,6 +41,7 @@ Model::Model (std::string modelPath, std::string texturePath, int index,  glm::v
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned short), &indices[0] , GL_STATIC_DRAW);
 }
 
+// Cleanup function. Deletes buffers
 void Model::cleanup () {
 		// Cleanup VBO and shader
 		glDeleteBuffers(1, &vertexbuffer);
@@ -40,6 +50,11 @@ void Model::cleanup () {
 		glDeleteBuffers(1, &elementbuffer);
 }
 
+// Draw function for the object
+// programID - ID of shader program
+// TextureID - ID of texture manager
+// ProjectionMatrix - Projection matrix for computing model matrix
+// ViewMatrix - View matrix for computing model matrix
 void Model::draw(GLuint& programID, GLuint& TextureID, glm::mat4& ProjectionMatrix, glm::mat4& ViewMatrix) {
     // BUT the Model matrix is different (and the MVP too)
     GLuint MatrixID = glGetUniformLocation(programID, "MVP");

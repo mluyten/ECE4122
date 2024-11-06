@@ -1,3 +1,9 @@
 *.o
 *.vscode
-
+*.zip
+*build
+*.pdf
+*SFML
+*ogl
+*board
+*pieces

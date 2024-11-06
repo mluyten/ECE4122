@@ -16,7 +16,7 @@ extern GLFWwindow* window; // The "extern" keyword here is to access the variabl
 #include <glm/gtc/matrix_transform.hpp>
 using namespace glm;
 
-#include "Controls.h"
+#include "controls.hpp"
 
 #include <iostream>
 
@@ -40,9 +40,10 @@ float phi = atan(position.y / position.x);
 float speed = 3.0f; // 3 units / second
 float mouseSpeed = 0.005f;
 
+int lightMode = 0;
+bool pressedL = false;
 
-
-void computeMatricesFromInputs(){
+int computeMatricesFromInputs(){
 
 	// glfwGetTime is called only once, the first time this function is called
 	static double lastTime = glfwGetTime();
@@ -105,6 +106,18 @@ void computeMatricesFromInputs(){
 		position -= direction * deltaTime * speed;
 	}
 
+	if (glfwGetKey( window, GLFW_KEY_L ) == GLFW_PRESS){
+		if (!pressedL) {
+			lightMode = (lightMode + 1) % 4;
+			pressedL = true;
+		}
+	}
+	else {
+		if (pressedL) {
+			pressedL = !pressedL;
+		}
+	}
+
 	// Projection matrix : 45� Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
 	ProjectionMatrix = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 100.0f);
 	// Camera matrix
@@ -116,4 +129,6 @@ void computeMatricesFromInputs(){
 
 	// For the next frame, the "last time" will be "now"
 	lastTime = currentTime;
+	
+	return lightMode;
 }

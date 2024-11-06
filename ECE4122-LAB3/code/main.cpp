@@ -1,9 +1,20 @@
+/*
+Author: Matthew Luyten
+Class: ECE4122
+Last Date Modified: 10/21/2024
+
+Description:
+This is the main loop for this program. It loads in all of the objects, runs the draw loop, and updates the view based on user inputs.
+*/
+
 // Include standard headers
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
 #include <string>
 #include <list>
+#include <map>
+#include <utility>
 
 // Include GLEW
 #include <GL/glew.h>
@@ -23,93 +34,20 @@ using namespace glm;
 #include <common/objloader.hpp>
 #include <common/vboindexer.hpp>
 
-struct Model {
-	Model (std::string modelPath, std::string texturePath) {
-		bool res = loadAssImp(modelPath.c_str(), indices, indexed_vertices, indexed_uvs, indexed_normals);
+#include "Model.h"
 
-		// Load the texture
-		Texture = loadDDS(texturePath.c_str());
-
-		glGenBuffers(1, &vertexbuffer);
-		glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-		glBufferData(GL_ARRAY_BUFFER, indexed_vertices.size() * sizeof(glm::vec3), &indexed_vertices[0], GL_STATIC_DRAW);
-
-		glGenBuffers(1, &uvbuffer);
-		glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-		glBufferData(GL_ARRAY_BUFFER, indexed_uvs.size() * sizeof(glm::vec2), &indexed_uvs[0], GL_STATIC_DRAW);
-
-		glGenBuffers(1, &normalbuffer);
-		glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
-		glBufferData(GL_ARRAY_BUFFER, indexed_normals.size() * sizeof(glm::vec3), &indexed_normals[0], GL_STATIC_DRAW);
-
-		glGenBuffers(1, &elementbuffer);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned short), &indices[0] , GL_STATIC_DRAW);
+// This struct makes it easier to keep track of the texture and locations of many coppies of the same chess piece asset.
+struct Piece {
+	Piece(std::string t, std::vector<glm::vec3> p) {
+		texturePath = t;
+		positions = p;
 	}
-
-	void cleanup () {
-		// Cleanup VBO and shader
-		glDeleteBuffers(1, &vertexbuffer);
-		glDeleteBuffers(1, &uvbuffer);
-		glDeleteBuffers(1, &normalbuffer);
-		glDeleteBuffers(1, &elementbuffer);
-	}
-
-	void draw(GLuint& programID, GLuint& TextureID, glm::mat4& ProjectionMatrix, glm::mat4& ViewMatrix) {
-		// BUT the Model matrix is different (and the MVP too)
-		GLuint MatrixID = glGetUniformLocation(programID, "MVP");
-		GLuint ModelMatrixID = glGetUniformLocation(programID, "M");
-
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, Texture);
-		// Set our "myTextureSampler" sampler to use Texture Unit 0
-		glUniform1i(TextureID, 0);
-		
-		glm::mat4 ModelMatrix2 = glm::mat4(1.0);
-		ModelMatrix2 = glm::translate(ModelMatrix2, glm::vec3(2.0f, 0.0f, 0.0f));
-		glm::mat4 MVP = ProjectionMatrix * ViewMatrix * ModelMatrix2;
-
-		// Send our transformation to the currently bound shader, 
-		// in the "MVP" uniform
-		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
-		glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, &ModelMatrix2[0][0]);
-
-		// 1rst attribute buffer : vertices
-		glEnableVertexAttribArray(0);
-		glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
-		// 2nd attribute buffer : UVs
-		glEnableVertexAttribArray(1);
-		glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
-		// 3rd attribute buffer : normals
-		glEnableVertexAttribArray(2);
-		glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
-		glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
-		// Index buffer
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
-
-		// Draw the triangles !
-		glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT, (void*)0);
-	}
-
-	std::vector<unsigned short> indices;
-	std::vector<glm::vec3> indexed_vertices;
-	std::vector<glm::vec2> indexed_uvs;
-	std::vector<glm::vec3> indexed_normals;
-
-	GLuint Texture;
-	GLuint vertexbuffer;
-	GLuint uvbuffer;
-	GLuint normalbuffer;
-	GLuint elementbuffer;
-	// Generate a buffer for the indices as well
-	
+	Piece()=default;
+	std::string texturePath; // Texture for this mesh
+	std::vector<glm::vec3> positions; // Locations of the coppies of this mesh
 };
 
+// Main loop
 int main( void )
 {
 	// Initialize GLFW
@@ -127,7 +65,7 @@ int main( void )
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	// Open a window and create its OpenGL context
-	window = glfwCreateWindow( 1024, 768, "Tutorial 09 - Loading with AssImp", NULL, NULL);
+	window = glfwCreateWindow( 1024, 768, "Lab3", NULL, NULL);
 	if( window == NULL ){
 		fprintf( stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n" );
 		getchar();
@@ -173,56 +111,92 @@ int main( void )
 	GLuint programID = LoadShaders( "StandardShading.vertexshader", "StandardShading.fragmentshader" );
 
 	// Get a handle for our "MVP" uniform
-	//GLuint MatrixID = glGetUniformLocation(programID, "MVP");
 	GLuint ViewMatrixID = glGetUniformLocation(programID, "V");
-	//GLuint ModelMatrixID = glGetUniformLocation(programID, "M");
-
-	// Load the texture
-	//GLuint Texture = loadDDS("board/12951_Stone_Chess_Board_diff.DDS");
-	//GLuint Texture = loadDDS("uvmap.DDS");
 	
 	// Get a handle for our "myTextureSampler" uniform
 	GLuint TextureID  = glGetUniformLocation(programID, "myTextureSampler");
 
-	/*
-	// Read our .obj file
-	std::vector<unsigned short> indices;
-	std::vector<glm::vec3> indexed_vertices;
-	std::vector<glm::vec2> indexed_uvs;
-	std::vector<glm::vec3> indexed_normals;
-	
-	bool res = loadAssImp("pieces/pieces.obj", indices, indexed_vertices, indexed_uvs, indexed_normals);
-
-	// Load it into a VBO
-
-	GLuint vertexbuffer;
-	glGenBuffers(1, &vertexbuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-	glBufferData(GL_ARRAY_BUFFER, indexed_vertices.size() * sizeof(glm::vec3), &indexed_vertices[0], GL_STATIC_DRAW);
-
-	GLuint uvbuffer;
-	glGenBuffers(1, &uvbuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-	glBufferData(GL_ARRAY_BUFFER, indexed_uvs.size() * sizeof(glm::vec2), &indexed_uvs[0], GL_STATIC_DRAW);
-
-	GLuint normalbuffer;
-	glGenBuffers(1, &normalbuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
-	glBufferData(GL_ARRAY_BUFFER, indexed_normals.size() * sizeof(glm::vec3), &indexed_normals[0], GL_STATIC_DRAW);
-
-	// Generate a buffer for the indices as well
-	GLuint elementbuffer;
-	glGenBuffers(1, &elementbuffer);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned short), &indices[0] , GL_STATIC_DRAW);
-	*/
-
 	std::list<Model> models;
-	models.emplace_back("board/board.obj", "board/12951_Stone_Chess_Board_diff.DDS");
+	models.emplace_back("board/board.obj", "board/chessboard.dds");
+	std::vector<std::string> pieceTextures = {};
+
+	std::map<int, Piece> pieces;
+	// White Pawns
+	glm::vec3 offset(2.2075, 0.5425, 0);
+	pieces[0] = Piece("pieces/woodlight0.dds", {
+				glm::vec3(offset.x, -0.16 + offset.y * 0, 0),
+				glm::vec3(offset.x, -0.16 + offset.y * 1, 0),
+				glm::vec3(offset.x, -0.16 + offset.y * 2, 0),
+				glm::vec3(offset.x, -0.16 + offset.y * 3, 0),
+				glm::vec3(offset.x, -0.16 + offset.y * 4, 0),
+				glm::vec3(offset.x, -0.16 + offset.y * 5, 0),
+				glm::vec3(offset.x, -0.16 + offset.y * 6, 0),
+				glm::vec3(offset.x, -0.16 + offset.y * 7, 0)});
+	// White Rooks
+	offset = glm::vec3(2.73, 0.5425, 0);
+	pieces[1] = Piece("pieces/woodlight1.dds", {
+				glm::vec3(offset.x, -3.5425 + offset.y * 0, 0),
+				glm::vec3(offset.x, -3.5425 + offset.y * 7, 0)});
+	// White Knights
+	offset = glm::vec3(2.73, 0.5425, 0);
+	pieces[2] = Piece("pieces/woodlight2.dds", {
+				glm::vec3(offset.x, -2.87 + offset.y * 1, 0),
+				glm::vec3(offset.x, -2.87 + offset.y * 6, 0)});
+	// White Bishops
+	offset = glm::vec3(2.73, 0.5425, 0);
+	pieces[3] = Piece("pieces/woodlight3.dds", {
+				glm::vec3(offset.x, -2.18 + offset.y * 2, 0),
+				glm::vec3(offset.x, -2.18 + offset.y * 5, 0)});
+	// White Queen
+	pieces[4] = Piece("pieces/woodlight4.dds", {
+				glm::vec3(2.73, 0.1475, 0)});
+	// White King
+	pieces[5] = Piece("pieces/woodlight5.dds", {
+				glm::vec3(2.73, 1.3725, 0)});
+	for (int i = 0; i < 6; i++) {
+		for (auto& pos : pieces[i].positions) models.emplace_back("pieces/pieces.obj", pieces[i].texturePath, i, pos, 3.14/2);
+	}
+
+	// Black Pawns
+	offset = glm::vec3(-.545, 0.5425, 0);
+	pieces[6] = Piece("pieces/wooddark0.dds", {
+				glm::vec3(offset.x, -3.625 + offset.y * 0, 0),
+				glm::vec3(offset.x, -3.625 + offset.y * 1, 0),
+				glm::vec3(offset.x, -3.625 + offset.y * 2, 0),
+				glm::vec3(offset.x, -3.625 + offset.y * 3, 0),
+				glm::vec3(offset.x, -3.625 + offset.y * 4, 0),
+				glm::vec3(offset.x, -3.625 + offset.y * 5, 0),
+				glm::vec3(offset.x, -3.625 + offset.y * 6, 0),
+				glm::vec3(offset.x, -3.65 + offset.y * 7, 0)});
+	// Black Rooks
+	offset = glm::vec3(-1.0675, 0.5425, 0);
+	pieces[7] = Piece("pieces/wooddark1.dds", {
+				glm::vec3(offset.x, -0.25 + offset.y * 0, 0),
+				glm::vec3(offset.x, -0.25 + offset.y * 7, 0)});
+	// Black Knights
+	offset = glm::vec3(-1.0675, 0.5425, 0);
+	pieces[8] = Piece("pieces/wooddark2.dds", {
+				glm::vec3(offset.x, -0.935 + offset.y * 1, 0),
+				glm::vec3(offset.x, -0.935 + offset.y * 6, 0)});
+	// Black Bishops
+	offset = glm::vec3(-1.0675, 0.5425, 0);
+	pieces[9] = Piece("pieces/wooddark3.dds", {
+				glm::vec3(offset.x, -1.62 + offset.y * 2, 0),
+				glm::vec3(offset.x, -1.62 + offset.y * 5, 0)});
+	// Black Queen
+	pieces[10] = Piece("pieces/wooddark4.dds", {
+				glm::vec3(-1.0675, -0.69, 0)});
+	// Black King
+	pieces[11] = Piece("pieces/wooddark5.dds", {
+				glm::vec3(-1.0675, -0.825, 0)});
+	for (int i = 6; i < 12; i++) {
+		for (auto& pos : pieces[i].positions) models.emplace_back("pieces/pieces.obj", pieces[i].texturePath, i, pos, -3.14/2);
+	}
 
 	// Get a handle for our "LightPosition" uniform
 	glUseProgram(programID);
 	GLuint LightID = glGetUniformLocation(programID, "LightPosition_worldspace");
+	GLuint LightToggle = glGetUniformLocation(programID, "lightToggle");
 
 	// For speed computation
 	double lastTime = glfwGetTime();
@@ -233,12 +207,11 @@ int main( void )
 		// Measure speed
 		double currentTime = glfwGetTime();
 		nbFrames++;
-		if ( currentTime - lastTime >= 1.0 ){ // If last prinf() was more than 1sec ago
+		//if ( currentTime - lastTime >= 1.0 ){ // If last prinf() was more than 1sec ago
 			// printf and reset
-			printf("%f ms/frame\n", 1000.0/double(nbFrames));
-			nbFrames = 0;
-			lastTime += 1.0;
-		}
+			//nbFrames = 0;
+			//lastTime += 1.0;
+		//}
 
 		// Clear the screen
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -246,79 +219,21 @@ int main( void )
 		// Use our shader
 		glUseProgram(programID);
 
-		// Compute the MVP matrix from keyboard and mouse input
-		computeMatricesFromInputs();
+		// Compute the MVP matrix from keyboard input and get light mode
+		int lightMode = computeMatricesFromInputs();
+		// Set light mode in shader
+		glUniform1i(LightToggle, lightMode);
+
 		glm::mat4 ProjectionMatrix = getProjectionMatrix();
 		glm::mat4 ViewMatrix = getViewMatrix();
-		glm::mat4 ModelMatrix = glm::mat4(1.0);
-		
-		//glm::mat4 MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
 
 		glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, &ViewMatrix[0][0]);
 		
-		// Send our transformation to the currently bound shader, 
-		// in the "MVP" uniform
-		//glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
-		//glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, &ModelMatrix[0][0]);
-		
-
-		glm::vec3 lightPos = glm::vec3(0, 10, 0);
+		// Set the light up
+		glm::vec3 lightPos = glm::vec3(0, 0, 5);
 		glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
 
-		/*
-		// Bind our texture in Texture Unit 0
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, Texture);
-		// Set our "myTextureSampler" sampler to use Texture Unit 0
-		glUniform1i(TextureID, 0);
-
-		// 1rst attribute buffer : vertices
-		glEnableVertexAttribArray(0);
-		glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-		glVertexAttribPointer(
-			0,                  // attribute
-			3,                  // size
-			GL_FLOAT,           // type
-			GL_FALSE,           // normalized?
-			0,                  // stride
-			(void*)0            // array buffer offset
-		);
-
-		// 2nd attribute buffer : UVs
-		glEnableVertexAttribArray(1);
-		glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-		glVertexAttribPointer(
-			1,                                // attribute
-			2,                                // size
-			GL_FLOAT,                         // type
-			GL_FALSE,                         // normalized?
-			0,                                // stride
-			(void*)0                          // array buffer offset
-		);
-
-		// 3rd attribute buffer : normals
-		glEnableVertexAttribArray(2);
-		glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
-		glVertexAttribPointer(
-			2,                                // attribute
-			3,                                // size
-			GL_FLOAT,                         // type
-			GL_FALSE,                         // normalized?
-			0,                                // stride
-			(void*)0                          // array buffer offset
-		);
-
-		// Index buffer
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
-
-		// Draw the triangles !
-		glDrawElements(
-			GL_TRIANGLES,      // mode
-			indices.size(),    // count
-			GL_UNSIGNED_SHORT,   // type
-			(void*)0           // element array buffer offset
-		);*/
-
+		// Draw all meshes
 		for (auto& model : models) {
 			model.draw(programID, TextureID, ProjectionMatrix, ViewMatrix);
 		}
@@ -326,7 +241,6 @@ int main( void )
 		glDisableVertexAttribArray(0);
 		glDisableVertexAttribArray(1);
 		glDisableVertexAttribArray(2);
-		
 
 		// Swap buffers
 		glfwSwapBuffers(window);
@@ -336,19 +250,10 @@ int main( void )
 	while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
 		   glfwWindowShouldClose(window) == 0 );
 
+	// Clean up all buffers we used
 	for (auto& model : models) {
 			model.cleanup();
 		}
-
-	/*
-	// Cleanup VBO and shader
-	glDeleteBuffers(1, &vertexbuffer);
-	glDeleteBuffers(1, &uvbuffer);
-	glDeleteBuffers(1, &normalbuffer);
-	glDeleteBuffers(1, &elementbuffer);
-	glDeleteProgram(programID);
-	glDeleteTextures(1, &Texture);
-	glDeleteVertexArrays(1, &VertexArrayID);*/
 
 	// Close OpenGL window and terminate GLFW
 	glfwTerminate();
